@@ -479,6 +479,9 @@
             const years = [...new Set(allData.map(d => d.year))].sort();
             const yearFilters = document.getElementById('yearFilters');
             
+            // 기존 버튼들 제거
+            yearFilters.innerHTML = '';
+            
             // 전체 버튼
             const allBtn = document.createElement('button');
             allBtn.className = 'filter-btn active';
@@ -775,8 +778,65 @@
                 return matchesSearch && matchesYear;
             });
 
-            // 네트워크 데이터 재생성
-            createNetworkData();
+            // 네트워크 데이터 재생성 (연도 필터는 다시 생성하지 않음)
+            const nodeMap = new Map();
+            const linkMap = new Map();
+
+            // 노드 생성
+            filteredData.forEach(d => {
+                // 계약명 노드
+                if (!nodeMap.has(d.contract)) {
+                    nodeMap.set(d.contract, {
+                        id: d.contract,
+                        type: 'contract',
+                        year: d.year,
+                        connections: 0
+                    });
+                }
+
+                // 발주처 노드
+                if (!nodeMap.has(d.client)) {
+                    nodeMap.set(d.client, {
+                        id: d.client,
+                        type: 'client',
+                        connections: 0
+                    });
+                }
+
+                // 수행용역 노드
+                if (!nodeMap.has(d.service)) {
+                    nodeMap.set(d.service, {
+                        id: d.service,
+                        type: 'service',
+                        connections: 0
+                    });
+                }
+
+                // 링크 생성
+                const links_to_create = [
+                    [d.contract, d.client],
+                    [d.contract, d.service],
+                    [d.client, d.service]
+                ];
+
+                links_to_create.forEach(([source, target]) => {
+                    const linkId = source < target ? `${source}|${target}` : `${target}|${source}`;
+                    if (!linkMap.has(linkId)) {
+                        linkMap.set(linkId, {
+                            source: source,
+                            target: target,
+                            weight: 1
+                        });
+                        nodeMap.get(source).connections++;
+                        nodeMap.get(target).connections++;
+                    } else {
+                        linkMap.get(linkId).weight++;
+                    }
+                });
+            });
+
+            nodes = Array.from(nodeMap.values());
+            links = Array.from(linkMap.values());
 
             // 노드 타입 필터링
             if (activeType !== 'all') {
