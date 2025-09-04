@@ -384,6 +384,9 @@
 
             filteredData = [...allData];
             createNetworkData();
+            
+            // 연도 필터는 초기 로드 시에만 생성
+            createYearFilters();
         }
 
         // CSV 라인 파싱 (따옴표 처리)
@@ -469,9 +472,6 @@
 
             nodes = Array.from(nodeMap.values());
             links = Array.from(linkMap.values());
-
-            // 연도 필터 생성
-            createYearFilters();
         }
 
         // 연도 필터 생성
