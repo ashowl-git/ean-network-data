@@ -448,9 +448,33 @@
             try {
                 console.log('🔄 네트워크 데이터 로딩 시작...');
                 
-                const response = await fetch('ean_full_network_data.json');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                // 여러 경로 시도 및 캐시 방지
+                const possiblePaths = [
+                    './ean_full_network_data.json',
+                    'ean_full_network_data.json',
+                    '/ean_full_network_data.json'
+                ];
+                
+                let response = null;
+                let lastError = null;
+                
+                for (const path of possiblePaths) {
+                    try {
+                        console.log(`시도 중: ${path}`);
+                        response = await fetch(path + '?v=' + Date.now()); // 캐시 방지
+                        if (response.ok) {
+                            console.log(`성공: ${path}`);
+                            break;
+                        }
+                    } catch (error) {
+                        console.log(`실패: ${path} - ${error.message}`);
+                        lastError = error;
+                        continue;
+                    }
+                }
+                
+                if (!response || !response.ok) {
+                    throw new Error(`모든 경로에서 로딩 실패. 마지막 상태: ${response?.status || 'Network Error'}`);
                 }
                 
                 const embeddedNetworkData = await response.json();
@@ -489,8 +513,33 @@
                 
             } catch (error) {
                 console.error('❌ 데이터 로딩 실패:', error);
-                document.getElementById('loading').innerHTML = 
-                    '<div style="color: #f85149;">❌ 데이터 로딩 실패</div><div style="font-size: 0.9rem; margin-top: 10px;">네트워크 연결을 확인해주세요.</div>';
+                
+                // GitHub Pages에서의 상세한 에러 정보 표시
+                const errorDetails = `
+                    <div style="color: #f85149; text-align: left; padding: 20px;">
+                        <h3>❌ 데이터 로딩 실패</h3>
+                        <p><strong>에러:</strong> ${error.message}</p>
+                        <p><strong>현재 URL:</strong> ${window.location.href}</p>
+                        <p><strong>해결 방법:</strong></p>
+                        <ul style="margin-left: 20px;">
+                            <li>1-10분 기다린 후 새로고침 (GitHub Pages 배포 시간)</li>
+                            <li>브라우저 캐시 클리어 (Ctrl+F5)</li>
+                            <li>JSON 파일이 같은 폴더에 있는지 확인</li>
+                            <li>개발자도구 > Network 탭에서 404/403 오류 확인</li>
+                        </ul>
+                        <button onclick="location.reload()" style="
+                            background: #7c3aed; 
+                            color: white; 
+                            border: none; 
+                            padding: 10px 20px; 
+                            border-radius: 5px; 
+                            cursor: pointer;
+                            margin-top: 10px;
+                        ">🔄 다시 시도</button>
+                    </div>
+                `;
+                
+                document.getElementById('loading').innerHTML = errorDetails;
             }
         }
         
