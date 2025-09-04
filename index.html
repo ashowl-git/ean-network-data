@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EAN 네트워크 데이터 시각화</title>
+    <style>
+        /* 로딩 스피너 스타일 */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 메인 컨테이너 스타일 */
+        .container {
+            display: none;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .data-preview {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .json-preview {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 로딩 화면 -->
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <div>데이터를 불러오는 중...</div>
+    </div>
+    
+    <!-- 메인 컨테이너 -->
+    <div id="container" class="container">
+        <div class="header">
+            <h1>🌐 EAN 네트워크 데이터</h1>
+            <p>실시간으로 로드된 JSON 데이터 시각화</p>
+        </div>
+        
+        <!-- 통계 카드 -->
+        <div class="stats">
+            <div class="stat-card">
+                <div id="nodeCount" class="stat-number">-</div>
+                <div class="stat-label">총 노드 수</div>
+            </div>
+            <div class="stat-card">
+                <div id="linkCount" class="stat-number">-</div>
+                <div class="stat-label">총 링크 수</div>
+            </div>
+            <div class="stat-card">
+                <div id="dataSize" class="stat-number">-</div>
+                <div class="stat-label">데이터 크기</div>
+            </div>
+            <div class="stat-card">
+                <div id="loadTime" class="stat-number">-</div>
+                <div class="stat-label">로딩 시간</div>
+            </div>
+        </div>
+        
+        <!-- 데이터 미리보기 -->
+        <div class="data-preview">
+            <h3>📊 데이터 미리보기</h3>
+            <div id="jsonPreview" class="json-preview">
+                데이터를 불러오는 중...
+            </div>
+        </div>
+    </div>
+    
+    <!-- 에러 표시 -->
+    <div id="error" class="error" style="display: none;">
+        <h2>❌ 데이터 로딩 실패</h2>
+        <p>JSON 파일을 불러올 수 없습니다. 네트워크 연결을 확인해주세요.</p>
+    </div>
+
+    <script>
+        // 전역 변수
+        let networkData = null;
+        const startTime = performance.now();
+        
+        // 파일 크기를 사람이 읽기 쉬운 형태로 변환
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // 로딩 시간을 밀리초 단위로 표시
+        function formatLoadTime(ms) {
+            if (ms < 1000) return Math.round(ms) + 'ms';
+            return (ms / 1000).toFixed(2) + 's';
+        }
+        
+        // JSON 데이터 미리보기 생성
+        function generatePreview(data) {
+            const preview = {
+                summary: {
+                    totalNodes: data.nodes ? data.nodes.length : 0,
+                    totalLinks: data.links ? data.links.length : 0,
+                    dataStructure: Object.keys(data)
+                },
+                sampleNode: data.nodes ? data.nodes[0] : null,
+                sampleLink: data.links ? data.links[0] : null
+            };
+            
+            return JSON.stringify(preview, null, 2);
+        }
+        
+        // 통계 업데이트
+        function updateStats(data, loadTime, dataSize) {
+            document.getElementById('nodeCount').textContent = 
+                data.nodes ? data.nodes.length.toLocaleString() : '0';
+            document.getElementById('linkCount').textContent = 
+                data.links ? data.links.length.toLocaleString() : '0';
+            document.getElementById('dataSize').textContent = formatFileSize(dataSize);
+            document.getElementById('loadTime').textContent = formatLoadTime(loadTime);
+        }
+        
+        // JSON 데이터 비동기 로딩
+        async function loadNetworkData() {
+            try {
+                console.log('🔄 JSON 데이터 로딩 시작...');
+                
+                // fetch로 JSON 파일 비동기 로딩
+                const response = await fetch('ean_full_network_data.json');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // 응답 크기 계산
+                const contentLength = response.headers.get('content-length');
+                const dataSize = contentLength ? parseInt(contentLength) : 0;
+                
+                // JSON 파싱
+                networkData = await response.json();
+                
+                const endTime = performance.now();
+                const loadTime = endTime - startTime;
+                
+                console.log('✅ JSON 데이터 로딩 완료:', {
+                    nodes: networkData.nodes?.length || 0,
+                    links: networkData.links?.length || 0,
+                    loadTime: formatLoadTime(loadTime),
+                    dataSize: formatFileSize(dataSize)
+                });
+                
+                // UI 업데이트
+                updateStats(networkData, loadTime, dataSize);
+                document.getElementById('jsonPreview').textContent = generatePreview(networkData);
+                
+                // 로딩 화면 숨기고 메인 컨테이너 표시
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('container').style.display = 'block';
+                
+                // 추가 처리가 필요한 경우 여기에 코드 추가
+                // 예: 네트워크 그래프 그리기, 데이터 분석 등
+                
+            } catch (error) {
+                console.error('❌ JSON 데이터 로딩 실패:', error);
+                
+                // 에러 화면 표시
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+        
+        // 페이지 로드 시 데이터 로딩 시작
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 페이지 로딩 완료, JSON 데이터 로딩 시작...');
+            loadNetworkData();
+        });
+        
+        // 개발자용: 전역에서 데이터 접근 가능
+        window.getNetworkData = function() {
+            return networkData;
+        };
+    </script>
+</body>
+</html> 
