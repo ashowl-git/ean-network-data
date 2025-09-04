@@ -3,25 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EAN 네트워크 데이터 시각화</title>
+    <title>EAN Technology 네트워크 - 전체 데이터</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
-        /* 로딩 스피너 스타일 */
-        .loading {
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            overflow: hidden;
+        }
+        
+        .container {
             display: flex;
-            justify-content: center;
-            align-items: center;
             height: 100vh;
-            font-family: Arial, sans-serif;
+            flex-direction: row;
+        }
+        
+        .sidebar {
+            width: 320px;
+            min-width: 280px;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .main-content {
+            flex: 1;
+            position: relative;
+            background: #0d1117;
+        }
+        
+        #network {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #f0f6fc;
+            background: linear-gradient(135deg, #7c3aed, #2563eb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .demo-badge {
+            background: linear-gradient(135deg, #7c3aed, #2563eb);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+        }
+        
+        .legend, .controls, .stats {
+            background: #21262d;
+            border: 1px solid #30363d;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        }
+        
+        .legend h3, .controls h3, .stats h3 {
+            margin-bottom: 12px;
+            color: #f0f6fc;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            border-radius: 4px;
+            box-shadow: 0 0 0 1px rgba(240, 246, 252, 0.1);
+        }
+        
+        .contractor { background: #6366f1; }
+        .contract { background: #10b981; }
+        .service { background: #f59e0b; }
+        
+        .control-group {
+            margin-bottom: 16px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #f0f6fc;
+        }
+        
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 0.85rem;
+            transition: border-color 0.2s;
+        }
+        
+        .control-group input:focus, .control-group select:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.1);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 8px 12px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        
+        .btn:hover {
+            background: #2ea043;
+        }
+        
+        .btn.secondary {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+        }
+        
+        .btn.secondary:hover {
+            background: #30363d;
+        }
+        
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+        
+        .stats-label {
+            color: #8b949e;
+        }
+        
+        .stats-value {
+            color: #f0f6fc;
+            font-weight: 600;
+        }
+        
+        /* 로딩 스피너 */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #c9d1d9;
         }
         
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
+            border: 3px solid #30363d;
+            border-top: 3px solid #7c3aed;
             border-radius: 50%;
             width: 40px;
             height: 40px;
             animation: spin 2s linear infinite;
-            margin-right: 10px;
+            margin: 0 auto 20px;
         }
         
         @keyframes spin {
@@ -29,236 +202,522 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* 메인 컨테이너 스타일 */
-        .container {
-            display: none;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .stat-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .stat-number {
-            font-size: 2em;
-            font-weight: bold;
-            color: #3498db;
-        }
-        
-        .stat-label {
-            color: #666;
-            margin-top: 5px;
-        }
-        
-        .data-preview {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-        
-        .json-preview {
-            background: #f4f4f4;
-            padding: 15px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 12px;
-            max-height: 300px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        
-        .error {
-            color: #e74c3c;
-            text-align: center;
-            padding: 20px;
-        }
-        
-        /* 반응형 디자인 */
+        /* 모바일 반응형 */
         @media (max-width: 768px) {
             .container {
-                padding: 10px;
+                flex-direction: column;
             }
             
-            .stats {
-                grid-template-columns: 1fr;
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 40vh;
+                order: 2;
+                transform: translateY(100%);
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 1000;
+                border-right: none;
+                border-top: 1px solid #30363d;
+            }
+            
+            .sidebar.open {
+                transform: translateY(0);
+            }
+            
+            .main-content {
+                order: 1;
+                height: 100vh;
+            }
+            
+            .title {
+                font-size: 1.2rem;
+                margin-bottom: 15px;
+            }
+            
+            .mobile-toggle {
+                display: block;
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 1001;
+                background: #7c3aed;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .mobile-toggle {
+                display: none;
+            }
+        }
+        
+        /* 태블릿 */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .sidebar {
+                width: 280px;
+            }
+            
+            .title {
+                font-size: 1.3rem;
+            }
+        }
+        
+        /* 작은 모바일 */
+        @media (max-width: 480px) {
+            .sidebar {
+                padding: 15px;
+                max-height: 50vh;
+            }
+            
+            .title {
+                font-size: 1.1rem;
+            }
+            
+            .demo-badge {
+                font-size: 0.7rem;
+                padding: 6px 12px;
+            }
+            
+            .legend, .controls, .stats {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            
+            .mobile-toggle {
+                bottom: 15px;
+                right: 15px;
+                width: 45px;
+                height: 45px;
+                font-size: 1.1rem;
             }
         }
     </style>
 </head>
 <body>
-    <!-- 로딩 화면 -->
-    <div id="loading" class="loading">
-        <div class="spinner"></div>
-        <div>데이터를 불러오는 중...</div>
-    </div>
+    <!-- 모바일 토글 버튼 -->
+    <button class="mobile-toggle" onclick="toggleSidebar()">⚙️</button>
     
-    <!-- 메인 컨테이너 -->
-    <div id="container" class="container">
-        <div class="header">
-            <h1>🌐 EAN 네트워크 데이터</h1>
-            <p>실시간으로 로드된 JSON 데이터 시각화</p>
+    <div class="container">
+        <div class="sidebar" id="sidebar">
+            <div class="title">EAN Technology 네트워크</div>
+            <div class="demo-badge">🚀 실시간 데이터 시각화</div>
+            
+            <div class="legend">
+                <h3>범례</h3>
+                <div class="legend-item">
+                    <div class="legend-color contractor"></div>
+                    <span id="contractorCount">계약자 (1,723개)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color contract"></div>
+                    <span id="contractCount">계약 (4,078개)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color service"></div>
+                    <span id="serviceCount">서비스 (49개)</span>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <h3>제어</h3>
+                <div class="control-group">
+                    <label for="searchInput">검색</label>
+                    <input type="text" id="searchInput" placeholder="노드 검색..." onkeyup="searchNodes()">
+                </div>
+                <div class="control-group">
+                    <label for="nodeTypeFilter">노드 유형</label>
+                    <select id="nodeTypeFilter" onchange="filterByType()">
+                        <option value="all">모든 유형</option>
+                        <option value="contractor">계약자</option>
+                        <option value="contract">계약</option>
+                        <option value="service">서비스</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="resetView()">뷰 재설정</button>
+                <button class="btn secondary" onclick="toggleLabels()">라벨 토글</button>
+            </div>
+            
+            <div class="stats">
+                <h3>통계</h3>
+                <div class="stats-item">
+                    <span class="stats-label">표시된 노드:</span>
+                    <span class="stats-value" id="visibleNodesCount">0</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">표시된 링크:</span>
+                    <span class="stats-value" id="visibleLinksCount">0</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">총 노드:</span>
+                    <span class="stats-value" id="totalNodesCount">0</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">총 링크:</span>
+                    <span class="stats-value" id="totalLinksCount">0</span>
+                </div>
+            </div>
         </div>
         
-        <!-- 통계 카드 -->
-        <div class="stats">
-            <div class="stat-card">
-                <div id="nodeCount" class="stat-number">-</div>
-                <div class="stat-label">총 노드 수</div>
+        <div class="main-content">
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <div>네트워크 데이터를 불러오는 중...</div>
             </div>
-            <div class="stat-card">
-                <div id="linkCount" class="stat-number">-</div>
-                <div class="stat-label">총 링크 수</div>
-            </div>
-            <div class="stat-card">
-                <div id="dataSize" class="stat-number">-</div>
-                <div class="stat-label">데이터 크기</div>
-            </div>
-            <div class="stat-card">
-                <div id="loadTime" class="stat-number">-</div>
-                <div class="stat-label">로딩 시간</div>
-            </div>
+            <svg id="network"></svg>
         </div>
-        
-        <!-- 데이터 미리보기 -->
-        <div class="data-preview">
-            <h3>📊 데이터 미리보기</h3>
-            <div id="jsonPreview" class="json-preview">
-                데이터를 불러오는 중...
-            </div>
-        </div>
-    </div>
-    
-    <!-- 에러 표시 -->
-    <div id="error" class="error" style="display: none;">
-        <h2>❌ 데이터 로딩 실패</h2>
-        <p>JSON 파일을 불러올 수 없습니다. 네트워크 연결을 확인해주세요.</p>
     </div>
 
     <script>
         // 전역 변수
         let networkData = null;
-        const startTime = performance.now();
+        let simulation = null;
+        let svg, g;
+        let node, link, label;
+        let allNodes = [], allLinks = [];
+        let visibleNodes = [], visibleLinks = [];
+        let showLabels = false;
+        let isMobile = window.innerWidth <= 768;
         
-        // 파일 크기를 사람이 읽기 쉬운 형태로 변환
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        // 모바일 사이드바 토글
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
         }
         
-        // 로딩 시간을 밀리초 단위로 표시
-        function formatLoadTime(ms) {
-            if (ms < 1000) return Math.round(ms) + 'ms';
-            return (ms / 1000).toFixed(2) + 's';
-        }
+        // 윈도우 리사이즈 핸들러
+        window.addEventListener('resize', function() {
+            const newIsMobile = window.innerWidth <= 768;
+            if (newIsMobile !== isMobile) {
+                isMobile = newIsMobile;
+                if (!isMobile) {
+                    document.getElementById('sidebar').classList.remove('open');
+                }
+            }
+            if (svg) {
+                resizeVisualization();
+            }
+        });
         
-        // JSON 데이터 미리보기 생성
-        function generatePreview(data) {
-            const preview = {
-                summary: {
-                    totalNodes: data.nodes ? data.nodes.length : 0,
-                    totalLinks: data.links ? data.links.length : 0,
-                    dataStructure: Object.keys(data)
-                },
-                sampleNode: data.nodes ? data.nodes[0] : null,
-                sampleLink: data.links ? data.links[0] : null
-            };
+        // 시각화 크기 조정
+        function resizeVisualization() {
+            const container = d3.select("#network");
+            const width = container.node().getBoundingClientRect().width || 800;
+            const height = container.node().getBoundingClientRect().height || 600;
             
-            return JSON.stringify(preview, null, 2);
+            svg.attr("width", width).attr("height", height);
+            
+            if (simulation) {
+                simulation.force("center", d3.forceCenter(width / 2, height / 2))
+                    .force("x", d3.forceX(width / 2).strength(0.1))
+                    .force("y", d3.forceY(height / 2).strength(0.1))
+                    .alpha(0.3).restart();
+            }
         }
         
-        // 통계 업데이트
-        function updateStats(data, loadTime, dataSize) {
-            document.getElementById('nodeCount').textContent = 
-                data.nodes ? data.nodes.length.toLocaleString() : '0';
-            document.getElementById('linkCount').textContent = 
-                data.links ? data.links.length.toLocaleString() : '0';
-            document.getElementById('dataSize').textContent = formatFileSize(dataSize);
-            document.getElementById('loadTime').textContent = formatLoadTime(loadTime);
+        // 노드 크기 계산
+        function calculateNodeSize(node, links) {
+            const connections = links.filter(link => 
+                link.source === node.id || link.target === node.id
+            ).length;
+            return Math.max(4, Math.min(20, connections * 0.8));
         }
         
-        // JSON 데이터 비동기 로딩
+        // JSON 데이터 로딩 및 처리
         async function loadNetworkData() {
             try {
-                console.log('🔄 JSON 데이터 로딩 시작...');
+                console.log('🔄 네트워크 데이터 로딩 시작...');
                 
-                // fetch로 JSON 파일 비동기 로딩
                 const response = await fetch('ean_full_network_data.json');
-                
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                // 응답 크기 계산
-                const contentLength = response.headers.get('content-length');
-                const dataSize = contentLength ? parseInt(contentLength) : 0;
+                const embeddedNetworkData = await response.json();
                 
-                // JSON 파싱
-                networkData = await response.json();
+                // 데이터 변환 (원본과 동일한 구조로)
+                networkData = {
+                    nodes: embeddedNetworkData.nodes.map(node => ({
+                        id: node.id,
+                        name: node.label,
+                        type: node.type,
+                        group: node.tier
+                    })),
+                    links: embeddedNetworkData.links.map(link => ({
+                        source: link.source,
+                        target: link.target
+                    }))
+                };
                 
-                const endTime = performance.now();
-                const loadTime = endTime - startTime;
-                
-                console.log('✅ JSON 데이터 로딩 완료:', {
-                    nodes: networkData.nodes?.length || 0,
-                    links: networkData.links?.length || 0,
-                    loadTime: formatLoadTime(loadTime),
-                    dataSize: formatFileSize(dataSize)
+                // 노드 크기 계산
+                networkData.nodes.forEach(node => {
+                    node.size = calculateNodeSize(node, networkData.links);
                 });
                 
-                // UI 업데이트
-                updateStats(networkData, loadTime, dataSize);
-                document.getElementById('jsonPreview').textContent = generatePreview(networkData);
+                console.log('✅ 데이터 로딩 완료:', networkData.nodes.length, '노드,', networkData.links.length, '링크');
                 
-                // 로딩 화면 숨기고 메인 컨테이너 표시
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('container').style.display = 'block';
+                allNodes = [...networkData.nodes];
+                allLinks = [...networkData.links];
+                visibleNodes = [...allNodes];
+                visibleLinks = [...allLinks];
                 
-                // 추가 처리가 필요한 경우 여기에 코드 추가
-                // 예: 네트워크 그래프 그리기, 데이터 분석 등
+                // 통계 업데이트
+                updateLegendCounts();
+                initializeVisualization();
                 
             } catch (error) {
-                console.error('❌ JSON 데이터 로딩 실패:', error);
-                
-                // 에러 화면 표시
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('error').style.display = 'block';
+                console.error('❌ 데이터 로딩 실패:', error);
+                document.getElementById('loading').innerHTML = 
+                    '<div style="color: #f85149;">❌ 데이터 로딩 실패</div><div style="font-size: 0.9rem; margin-top: 10px;">네트워크 연결을 확인해주세요.</div>';
             }
         }
         
-        // 페이지 로드 시 데이터 로딩 시작
+        // 범례 카운트 업데이트
+        function updateLegendCounts() {
+            const contractorCount = visibleNodes.filter(n => n.type === 'contractor').length;
+            const contractCount = visibleNodes.filter(n => n.type === 'contract').length;
+            const serviceCount = visibleNodes.filter(n => n.type === 'service').length;
+            
+            document.getElementById('contractorCount').textContent = `계약자 (${contractorCount.toLocaleString()}개)`;
+            document.getElementById('contractCount').textContent = `계약 (${contractCount.toLocaleString()}개)`;
+            document.getElementById('serviceCount').textContent = `서비스 (${serviceCount.toLocaleString()}개)`;
+            
+            document.getElementById('visibleNodesCount').textContent = visibleNodes.length.toLocaleString();
+            document.getElementById('visibleLinksCount').textContent = visibleLinks.length.toLocaleString();
+            document.getElementById('totalNodesCount').textContent = allNodes.length.toLocaleString();
+            document.getElementById('totalLinksCount').textContent = allLinks.length.toLocaleString();
+        }
+        
+        // 시각화 초기화
+        function initializeVisualization() {
+            document.getElementById('loading').style.display = 'none';
+            
+            const container = d3.select("#network");
+            const width = container.node().getBoundingClientRect().width || 800;
+            const height = container.node().getBoundingClientRect().height || 600;
+            
+            svg = container.append("svg")
+                .attr("width", width)
+                .attr("height", height);
+            
+            // 줌 기능 추가
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", function(event) {
+                    g.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            g = svg.append("g");
+            
+            // 시뮬레이션 설정
+            simulation = d3.forceSimulation(visibleNodes)
+                .force("link", d3.forceLink(visibleLinks).id(d => d.id).distance(50))
+                .force("charge", d3.forceManyBody().strength(-200))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("x", d3.forceX(width / 2).strength(0.1))
+                .force("y", d3.forceY(height / 2).strength(0.1))
+                .force("collision", d3.forceCollide().radius(d => d.size + 2));
+            
+            updateVisualization();
+        }
+        
+        // 시각화 업데이트
+        function updateVisualization() {
+            // 링크 그리기
+            link = g.selectAll(".link")
+                .data(visibleLinks)
+                .join("line")
+                .attr("class", "link")
+                .attr("stroke", "#30363d")
+                .attr("stroke-width", 1)
+                .attr("stroke-opacity", 0.6);
+            
+            // 노드 그리기
+            node = g.selectAll(".node")
+                .data(visibleNodes)
+                .join("circle")
+                .attr("class", "node")
+                .attr("r", d => d.size)
+                .attr("fill", d => {
+                    switch(d.type) {
+                        case 'contractor': return '#6366f1';
+                        case 'contract': return '#10b981';
+                        case 'service': return '#f59e0b';
+                        default: return '#6b7280';
+                    }
+                })
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 1.5)
+                .style("cursor", "pointer")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended))
+                .on("mouseover", function(event, d) {
+                    d3.select(this)
+                        .transition().duration(200)
+                        .attr("r", d.size * 1.5)
+                        .attr("stroke-width", 3);
+                    
+                    // 툴팁 표시 (간단한 버전)
+                    const tooltip = g.append("text")
+                        .attr("id", "tooltip")
+                        .attr("x", d.x + 15)
+                        .attr("y", d.y - 15)
+                        .attr("fill", "#f0f6fc")
+                        .attr("font-size", "12px")
+                        .attr("font-weight", "bold")
+                        .style("pointer-events", "none")
+                        .text(d.name.length > 50 ? d.name.substring(0, 50) + '...' : d.name);
+                })
+                .on("mouseout", function(event, d) {
+                    d3.select(this)
+                        .transition().duration(200)
+                        .attr("r", d.size)
+                        .attr("stroke-width", 1.5);
+                    
+                    g.select("#tooltip").remove();
+                });
+            
+            // 라벨 (필요시)
+            if (showLabels) {
+                label = g.selectAll(".label")
+                    .data(visibleNodes.filter(d => d.size > 8))
+                    .join("text")
+                    .attr("class", "label")
+                    .attr("font-size", "10px")
+                    .attr("fill", "#c9d1d9")
+                    .attr("text-anchor", "middle")
+                    .attr("dy", ".35em")
+                    .style("pointer-events", "none")
+                    .text(d => d.name.length > 20 ? d.name.substring(0, 20) + '...' : d.name);
+            } else {
+                g.selectAll(".label").remove();
+            }
+            
+            // 시뮬레이션 업데이트
+            simulation.nodes(visibleNodes);
+            simulation.force("link").links(visibleLinks);
+            simulation.alpha(1).restart();
+            
+            simulation.on("tick", function() {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                
+                node
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y);
+                
+                if (showLabels && label) {
+                    label
+                        .attr("x", d => d.x)
+                        .attr("y", d => d.y);
+                }
+            });
+            
+            updateLegendCounts();
+        }
+        
+        // 드래그 핸들러
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        // 검색 기능
+        function searchNodes() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (searchTerm === '') {
+                visibleNodes = [...allNodes];
+                visibleLinks = [...allLinks];
+            } else {
+                visibleNodes = allNodes.filter(node => 
+                    node.name.toLowerCase().includes(searchTerm)
+                );
+                const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
+                visibleLinks = allLinks.filter(link => 
+                    visibleNodeIds.has(link.source.id || link.source) && 
+                    visibleNodeIds.has(link.target.id || link.target)
+                );
+            }
+            
+            updateVisualization();
+        }
+        
+        // 유형별 필터
+        function filterByType() {
+            const selectedType = document.getElementById('nodeTypeFilter').value;
+            
+            if (selectedType === 'all') {
+                visibleNodes = [...allNodes];
+                visibleLinks = [...allLinks];
+            } else {
+                visibleNodes = allNodes.filter(node => node.type === selectedType);
+                const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
+                visibleLinks = allLinks.filter(link => 
+                    visibleNodeIds.has(link.source.id || link.source) && 
+                    visibleNodeIds.has(link.target.id || link.target)
+                );
+            }
+            
+            updateVisualization();
+        }
+        
+        // 뷰 재설정
+        function resetView() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('nodeTypeFilter').value = 'all';
+            visibleNodes = [...allNodes];
+            visibleLinks = [...allLinks];
+            updateVisualization();
+            
+            // 줌 재설정
+            if (svg) {
+                svg.transition().duration(750).call(
+                    d3.zoom().transform,
+                    d3.zoomIdentity
+                );
+            }
+        }
+        
+        // 라벨 토글
+        function toggleLabels() {
+            showLabels = !showLabels;
+            updateVisualization();
+        }
+        
+        // 페이지 로드시 초기화
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 페이지 로딩 완료, JSON 데이터 로딩 시작...');
+            console.log('🚀 EAN 네트워크 시각화 시작...');
             loadNetworkData();
         });
-        
-        // 개발자용: 전역에서 데이터 접근 가능
-        window.getNetworkData = function() {
-            return networkData;
-        };
     </script>
 </body>
 </html> 
