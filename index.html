@@ -120,16 +120,16 @@
         .ruler-tick {
             position: absolute;
             width: 1px;
-            height: 12px;
-            background: #6b7280;
+            height: 8px;
+            background: #d1d5db;
             transform: translateX(-50%);
         }
 
         .ruler-tick.major {
             width: 2px;
-            height: 16px;
+            height: 12px;
             top: -2px;
-            background: #374151;
+            background: #9ca3af;
         }
 
         .ruler-labels {
@@ -142,17 +142,24 @@
 
         .ruler-year {
             position: absolute;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 600;
             color: #374151;
             transform: translateX(-50%);
             white-space: nowrap;
             user-select: none;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .ruler-year.selected {
             color: #10b981;
             font-weight: 700;
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
         }
 
         .selection-range {
@@ -1586,26 +1593,26 @@
             
             const totalYears = maxYear - minYear;
             
-            // 각 연도에 대한 눈금과 라벨 생성
-            for (let year = minYear; year <= maxYear; year++) {
+            // 주요 눈금만 생성 (시작, 중간점들, 끝)
+            const majorYears = [minYear];
+            const yearStep = Math.max(1, Math.floor(totalYears / 4)); // 최대 5개 구간
+            for (let i = 1; i < 4; i++) {
+                const year = minYear + (yearStep * i);
+                if (year < maxYear) majorYears.push(year);
+            }
+            if (maxYear !== minYear) majorYears.push(maxYear);
+            
+            // 주요 눈금 생성
+            majorYears.forEach(year => {
                 const position = totalYears === 0 ? 50 : ((year - minYear) / totalYears) * 100;
                 
-                // 눈금 생성
                 const tick = document.createElement('div');
                 tick.className = 'ruler-tick major';
                 tick.style.left = `${position}%`;
                 ticksContainer.appendChild(tick);
-                
-                // 라벨 생성
-                const label = document.createElement('div');
-                label.className = 'ruler-year';
-                label.textContent = year;
-                label.style.left = `${position}%`;
-                label.dataset.year = year;
-                labelsContainer.appendChild(label);
-            }
+            });
             
-            // 선택 범위 업데이트
+            // 선택 범위 업데이트 (라벨은 여기서 생성)
             updateRangeSelection(minYear, maxYear, minYear, maxYear);
         }
         
@@ -1617,6 +1624,7 @@
             const startHandle = document.querySelector('.range-start');
             const endHandle = document.querySelector('.range-end');
             const rangeFill = document.querySelector('.range-fill');
+            const labelsContainer = document.querySelector('.ruler-labels');
             
             if (startHandle && endHandle && rangeFill) {
                 startHandle.style.left = `${startPos}%`;
@@ -1628,11 +1636,28 @@
                 rangeFill.style.width = `${Math.max(1, endPos - startPos)}%`;
             }
             
-            // 라벨 하이라이트
-            document.querySelectorAll('.ruler-year').forEach(label => {
-                const year = parseInt(label.dataset.year);
-                label.classList.toggle('selected', year >= startYear && year <= endYear);
-            });
+            // 기존 라벨 제거 후 선택된 시작/끝 연도만 표시
+            if (labelsContainer) {
+                labelsContainer.innerHTML = '';
+                
+                // 시작 연도 라벨
+                const startLabel = document.createElement('div');
+                startLabel.className = 'ruler-year selected';
+                startLabel.textContent = startYear;
+                startLabel.style.left = `${startPos}%`;
+                startLabel.dataset.year = startYear;
+                labelsContainer.appendChild(startLabel);
+                
+                // 끝 연도 라벨 (시작과 다른 경우만)
+                if (startYear !== endYear) {
+                    const endLabel = document.createElement('div');
+                    endLabel.className = 'ruler-year selected';
+                    endLabel.textContent = endYear;
+                    endLabel.style.left = `${endPos}%`;
+                    endLabel.dataset.year = endYear;
+                    labelsContainer.appendChild(endLabel);
+                }
+            }
         }
         
         function updateTimelineDisplay() {
