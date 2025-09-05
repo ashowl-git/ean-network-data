@@ -28,7 +28,7 @@
         }
 
         .sidebar {
-            width: 320px;
+            width: 380px;
             background: #ffffff;
             border-right: 1px solid #e2e8f0;
             padding: 20px;
@@ -246,6 +246,20 @@
             opacity: 1;
         }
 
+        .node-label.service-highlighted {
+            opacity: 1;
+            font-size: 12px;
+            font-weight: 600;
+            fill: #111827;
+            filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.8));
+        }
+
+        .node.service-selected {
+            stroke-width: 4px;
+            stroke: #059669;
+            filter: drop-shadow(0 3px 8px rgba(16, 185, 129, 0.4));
+        }
+
         .tooltip {
             position: absolute;
             background: rgba(255, 255, 255, 0.95);
@@ -334,11 +348,140 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
+        /* 수행용역 브라우저 스타일 */
+        .service-browser {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .service-browser h3 {
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: #111827;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .service-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .service-control-btn {
+            padding: 4px 8px;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            color: #374151;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .service-control-btn:hover {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+        }
+
+        .service-control-btn.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: #ffffff;
+        }
+
+        .service-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .service-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+            transition: all 0.2s;
+        }
+
+        .service-item:last-child {
+            border-bottom: none;
+        }
+
+        .service-item:hover {
+            background: #f9fafb;
+            border-radius: 6px;
+            padding: 8px 8px;
+            margin: 0 -8px;
+        }
+
+        .service-checkbox {
+            margin-right: 10px;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #10b981;
+        }
+
+        .service-label {
+            flex: 1;
+            font-size: 13px;
+            color: #374151;
+            cursor: pointer;
+            line-height: 1.4;
+        }
+
+        .service-label.selected {
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .service-count {
+            font-size: 11px;
+            color: #6b7280;
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+
+        .service-item.highlighted .service-count {
+            background: #10b981;
+            color: #ffffff;
+        }
+
+        .service-search {
+            width: 100%;
+            padding: 8px 12px;
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            color: #374151;
+            font-size: 12px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+
+        .service-search:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            background: #ffffff;
+        }
+
         /* 반응형 디자인 */
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
-                height: 200px;
+                height: 250px;
                 overflow-y: auto;
             }
             
@@ -347,12 +490,16 @@
             }
             
             .graph-container {
-                height: calc(100vh - 200px);
+                height: calc(100vh - 250px);
             }
             
             .zoom-controls {
                 top: 10px;
                 right: 10px;
+            }
+
+            .service-browser {
+                max-height: 150px;
             }
         }
 
@@ -393,6 +540,25 @@
                         <button class="filter-btn" data-type="contract-only">계약명만</button>
                         <button class="filter-btn" data-type="service-only">수행용역만</button>
                     </div>
+                </div>
+            </div>
+            
+            <div class="service-browser">
+                <h3>
+                    🎯 수행용역 브라우저
+                    <span id="selectedServiceCount" style="font-size: 12px; color: #6b7280;">0/43</span>
+                </h3>
+                
+                <input type="text" class="service-search" id="serviceSearch" placeholder="수행용역 검색...">
+                
+                <div class="service-controls">
+                    <button class="service-control-btn" id="selectAllServices">모두 선택</button>
+                    <button class="service-control-btn" id="clearAllServices">모두 해제</button>
+                    <button class="service-control-btn" id="showSelectedOnly">선택만 보기</button>
+                </div>
+                
+                <div class="service-list" id="serviceList">
+                    <!-- 수행용역 리스트가 여기에 동적으로 생성됩니다 -->
                 </div>
             </div>
             
@@ -441,7 +607,7 @@
                 <button class="zoom-btn" id="resetZoom">⌂</button>
             </div>
             
-            <button class="clear-selection" id="clearSelection">선택 해제</button>
+            <button class="clear-selection" id="clearSelection">모든 선택 해제</button>
             
             <svg id="graph"></svg>
             <div class="tooltip" id="tooltip"></div>
@@ -460,6 +626,9 @@
         let zoom;
         let selectedNode = null;
         let currentScale = 1;
+        let selectedServices = new Set();
+        let allServices = [];
+        let showSelectedOnly = false;
 
         // 색상 스키마 (눈의 피로 감소를 위한 부드러운 색상)
         const colors = {
@@ -516,6 +685,9 @@
             
             // 연도 필터는 초기 로드 시에만 생성
             createYearFilters();
+            
+            // 수행용역 브라우저 초기화
+            initializeServiceBrowser();
         }
 
         // CSV 폴백 함수
@@ -793,19 +965,35 @@
             document.getElementById('clearSelection').classList.add('visible');
         }
 
-        // 선택 해제
+        // 선택 해제 (수행용역 선택도 해제)
         function clearSelection() {
             selectedNode = null;
             
+            // 수행용역 선택도 해제
+            selectedServices.clear();
+            showSelectedOnly = false;
+            document.getElementById('showSelectedOnly').classList.remove('active');
+            document.getElementById('showSelectedOnly').textContent = '선택만 보기';
+            
             g.selectAll('.node')
                 .classed('blurred', false)
-                .classed('highlighted', false);
+                .classed('highlighted', false)
+                .classed('service-selected', false)
+                .style('display', null);
 
             g.selectAll('.link')
                 .classed('blurred', false)
-                .classed('highlighted', false);
+                .classed('highlighted', false)
+                .style('display', null);
+                
+            g.selectAll('.node-label')
+                .classed('service-highlighted', false);
 
             document.getElementById('clearSelection').classList.remove('visible');
+            
+            // 수행용역 브라우저 업데이트
+            updateServiceCount();
+            renderServiceList();
         }
 
         // 확대 시 라벨 표시 (수행용역은 항상 표시)
@@ -873,8 +1061,35 @@
 
         // 이벤트 리스너 설정
         function setupEventListeners() {
-            // 검색
+            // 검색 (수행용역 필터와 연동)
             document.getElementById('searchInput').addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                
+                // 수행용역 검색 결과도 업데이트
+                if (query) {
+                    // 검색어와 매칭되는 수행용역 자동 하이라이트
+                    const matchingServices = allServices.filter(service => 
+                        service.toLowerCase().includes(query)
+                    );
+                    
+                    if (matchingServices.length > 0 && matchingServices.length <= 3) {
+                        // 매칭되는 수행용역이 3개 이하면 자동 선택
+                        selectedServices.clear();
+                        matchingServices.forEach(service => selectedServices.add(service));
+                        updateServiceHighlighting();
+                        updateServiceCount();
+                        renderServiceList();
+                    }
+                } else {
+                    // 검색어가 비어있으면 수행용역 선택 해제
+                    if (selectedServices.size > 0) {
+                        selectedServices.clear();
+                        updateServiceHighlighting();
+                        updateServiceCount();
+                        renderServiceList();
+                    }
+                }
+                
                 applyFilters();
             });
 
@@ -984,6 +1199,222 @@
             document.getElementById('totalNodes').textContent = nodes.length.toLocaleString();
             document.getElementById('totalLinks').textContent = links.length.toLocaleString();
             document.getElementById('visibleNodes').textContent = nodes.length.toLocaleString();
+        }
+
+        // 수행용역 브라우저 초기화
+        function initializeServiceBrowser() {
+            // 모든 수행용역 추출 및 정렬
+            const serviceSet = new Set();
+            allData.forEach(d => {
+                if (d.service && d.service.trim()) {
+                    serviceSet.add(d.service.trim());
+                }
+            });
+            
+            allServices = Array.from(serviceSet).sort((a, b) => a.localeCompare(b, 'ko'));
+            
+            console.log(`수행용역 ${allServices.length}개 추출 완료:`, allServices);
+            
+            // 수행용역 리스트 렌더링
+            renderServiceList();
+            
+            // 이벤트 리스너 설정
+            setupServiceBrowserEvents();
+            
+            // 카운트 업데이트
+            updateServiceCount();
+        }
+
+        // 수행용역 리스트 렌더링
+        function renderServiceList(searchQuery = '') {
+            const serviceList = document.getElementById('serviceList');
+            const filteredServices = allServices.filter(service => 
+                service.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            
+            serviceList.innerHTML = '';
+            
+            filteredServices.forEach(service => {
+                // 해당 수행용역과 연결된 계약 수 계산
+                const contractCount = allData.filter(d => d.service === service).length;
+                
+                const serviceItem = document.createElement('div');
+                serviceItem.className = 'service-item';
+                serviceItem.innerHTML = `
+                    <input type="checkbox" class="service-checkbox" data-service="${service}" ${selectedServices.has(service) ? 'checked' : ''}>
+                    <span class="service-label ${selectedServices.has(service) ? 'selected' : ''}">${service}</span>
+                    <span class="service-count">${contractCount}</span>
+                `;
+                
+                if (selectedServices.has(service)) {
+                    serviceItem.classList.add('highlighted');
+                }
+                
+                serviceList.appendChild(serviceItem);
+            });
+        }
+
+        // 수행용역 브라우저 이벤트 설정
+        function setupServiceBrowserEvents() {
+            // 검색 기능
+            const serviceSearch = document.getElementById('serviceSearch');
+            serviceSearch.addEventListener('input', (e) => {
+                const query = e.target.value;
+                renderServiceList(query);
+                
+                // 검색 결과에 따른 플레이스홀더 업데이트
+                const matchingCount = allServices.filter(service => 
+                    service.toLowerCase().includes(query.toLowerCase())
+                ).length;
+                
+                if (query && matchingCount === 0) {
+                    e.target.style.borderColor = '#ef4444';
+                    e.target.placeholder = '일치하는 수행용역이 없습니다';
+                } else {
+                    e.target.style.borderColor = query ? '#10b981' : '#d1d5db';
+                    e.target.placeholder = query ? `${matchingCount}개 수행용역 발견` : '수행용역 검색...';
+                }
+            });
+
+            // 체크박스 클릭 이벤트 (이벤트 위임)
+            const serviceList = document.getElementById('serviceList');
+            serviceList.addEventListener('change', (e) => {
+                if (e.target.classList.contains('service-checkbox')) {
+                    const service = e.target.dataset.service;
+                    const isChecked = e.target.checked;
+                    
+                    if (isChecked) {
+                        selectedServices.add(service);
+                    } else {
+                        selectedServices.delete(service);
+                    }
+                    
+                    updateServiceHighlighting();
+                    updateServiceCount();
+                    renderServiceList(serviceSearch.value);
+                }
+            });
+
+            // 라벨 클릭으로 체크박스 토글
+            serviceList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('service-label')) {
+                    const checkbox = e.target.parentElement.querySelector('.service-checkbox');
+                    checkbox.click();
+                }
+            });
+
+            // 컨트롤 버튼들
+            document.getElementById('selectAllServices').addEventListener('click', () => {
+                allServices.forEach(service => selectedServices.add(service));
+                updateServiceHighlighting();
+                updateServiceCount();
+                renderServiceList(serviceSearch.value);
+            });
+
+            document.getElementById('clearAllServices').addEventListener('click', () => {
+                selectedServices.clear();
+                updateServiceHighlighting();
+                updateServiceCount();
+                renderServiceList(serviceSearch.value);
+            });
+
+            document.getElementById('showSelectedOnly').addEventListener('click', (e) => {
+                showSelectedOnly = !showSelectedOnly;
+                e.target.classList.toggle('active');
+                e.target.textContent = showSelectedOnly ? '모두 보기' : '선택만 보기';
+                updateServiceHighlighting();
+            });
+        }
+
+        // 선택된 수행용역 수 업데이트
+        function updateServiceCount() {
+            const count = selectedServices.size;
+            const total = allServices.length;
+            document.getElementById('selectedServiceCount').textContent = `${count}/${total}`;
+        }
+
+        // 수행용역 선택에 따른 그래프 하이라이팅
+        function updateServiceHighlighting() {
+            if (!g) return; // 그래프가 아직 초기화되지 않은 경우
+
+            // 선택된 수행용역이 없으면 모든 노드를 정상 상태로
+            if (selectedServices.size === 0) {
+                g.selectAll('.node')
+                    .classed('blurred', false)
+                    .classed('highlighted', false)
+                    .classed('service-selected', false);
+                
+                g.selectAll('.link')
+                    .classed('blurred', false)
+                    .classed('highlighted', false);
+                    
+                g.selectAll('.node-label')
+                    .classed('service-highlighted', false);
+                
+                return;
+            }
+
+            // 선택된 수행용역과 관련된 노드들 찾기
+            const selectedServiceNodes = new Set();
+            const connectedContractNodes = new Set();
+            const highlightedLinks = new Set();
+
+            // 선택된 수행용역 노드들과 연결된 계약들 찾기
+            nodes.forEach(node => {
+                if (node.type === 'service' && selectedServices.has(node.id)) {
+                    selectedServiceNodes.add(node.id);
+                }
+            });
+
+            // 링크를 통해 연결된 계약들 찾기
+            links.forEach(link => {
+                const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                
+                if (selectedServiceNodes.has(sourceId)) {
+                    connectedContractNodes.add(targetId);
+                    highlightedLinks.add(link);
+                } else if (selectedServiceNodes.has(targetId)) {
+                    connectedContractNodes.add(sourceId);
+                    highlightedLinks.add(link);
+                }
+            });
+
+            // 모든 관련 노드들을 합치기
+            const allRelatedNodes = new Set([...selectedServiceNodes, ...connectedContractNodes]);
+
+            // "선택만 보기" 모드 처리
+            if (showSelectedOnly) {
+                g.selectAll('.node')
+                    .style('display', d => allRelatedNodes.has(d.id) ? null : 'none');
+                
+                g.selectAll('.link')
+                    .style('display', d => highlightedLinks.has(d) ? null : 'none');
+            } else {
+                // 모든 노드를 다시 표시
+                g.selectAll('.node')
+                    .style('display', null);
+                
+                g.selectAll('.link')
+                    .style('display', null);
+                
+                // 하이라이팅 적용
+                g.selectAll('.node')
+                    .classed('blurred', d => !allRelatedNodes.has(d.id))
+                    .classed('highlighted', d => allRelatedNodes.has(d.id))
+                    .classed('service-selected', d => selectedServiceNodes.has(d.id));
+                
+                g.selectAll('.link')
+                    .classed('blurred', d => !highlightedLinks.has(d))
+                    .classed('highlighted', d => highlightedLinks.has(d));
+            }
+
+            // 선택된 수행용역과 연결된 노드들의 라벨을 강조
+            g.selectAll('.node-label')
+                .classed('service-highlighted', d => allRelatedNodes.has(d.id));
+                
+            // 선택 해제 버튼 표시
+            document.getElementById('clearSelection').classList.add('visible');
         }
     </script>
 </body>
