@@ -1056,6 +1056,7 @@
         let visibleLinks = [];
         let nodeQuadTree = null;
         let performanceMode = false;
+        let smartPerformanceMode = false; // 지능형 성능 모드
 
         // 색상 스키마 (눈의 피로 감소를 위한 부드러운 색상)
         const colors = {
@@ -1265,9 +1266,10 @@
                     g.attr('transform', event.transform);
                     currentScale = event.transform.k;
                     
-                    // 성능 모드 자동 전환
+                    // 지능형 성능 모드 조정
                     const nodeCount = nodes.length;
-                    performanceMode = nodeCount > 500 || currentScale < 0.5;
+                    smartPerformanceMode = nodeCount > 1000;
+                    performanceMode = nodeCount > 500 || currentScale < 0.3;
                     
                     // 효율적인 라벨 업데이트
                     requestAnimationFrame(() => {
@@ -1279,15 +1281,35 @@
             svg.call(zoom);
             g = svg.append('g');
 
-            // 시뮬레이션 설정 (성능 최적화)
+            // 시뮬레이션 설정 (개선된 균형)
+            const nodeCount = nodes.length;
+            smartPerformanceMode = nodeCount > 1000;
+            performanceMode = nodeCount > 500;
+            
+            let forceStrength, distanceMax, alphaDecay;
+            
+            if (smartPerformanceMode) {
+                forceStrength = -200;
+                distanceMax = 300;
+                alphaDecay = 0.08;
+            } else if (performanceMode) {
+                forceStrength = -350;
+                distanceMax = 500;
+                alphaDecay = 0.06;
+            } else {
+                forceStrength = -400;
+                distanceMax = null;
+                alphaDecay = 0.028;
+            }
+            
             simulation = d3.forceSimulation(nodes)
                 .force('link', d3.forceLink(links).id(d => d.id).distance(80))
-                .force('charge', d3.forceManyBody().strength(-300).distanceMax(400))
+                .force('charge', d3.forceManyBody().strength(forceStrength).distanceMax(distanceMax))
                 .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(d => getNodeSize(d) + 2))
-                .alphaDecay(0.05)
+                .force('collision', d3.forceCollide().radius(d => getNodeSize(d) + 3))
+                .alphaDecay(alphaDecay)
                 .alphaMin(0.001)
-                .velocityDecay(0.8);
+                .velocityDecay(0.4);
 
             renderGraph();
             document.getElementById('loading').style.display = 'none';
@@ -1300,16 +1322,25 @@
 
             // 성능 모드 체크
             const nodeCount = nodes.length;
+            smartPerformanceMode = nodeCount > 1000;
             performanceMode = nodeCount > 500;
             
-            // 링크 그리기 (최적화)
+            // 링크 그리기 (개선된 시각 효과)
             const link = g.append('g')
                 .selectAll('line')
                 .data(links)
                 .enter().append('line')
                 .attr('class', 'link')
-                .attr('stroke-width', d => performanceMode ? Math.min(Math.sqrt(d.weight) + 1, 3) : Math.sqrt(d.weight) + 1)
-                .style('display', performanceMode && currentScale < 0.5 ? 'none' : null);
+                .attr('stroke-width', d => {
+                    if (smartPerformanceMode) {
+                        return Math.min(Math.sqrt(d.weight) * 0.8 + 1, 2.5);
+                    } else if (performanceMode) {
+                        return Math.min(Math.sqrt(d.weight) + 1, 4);
+                    } else {
+                        return Math.sqrt(d.weight) + 1;
+                    }
+                })
+                .style('display', smartPerformanceMode && currentScale < 0.3 ? 'none' : null);
 
             // 노드 그리기 (성능 최적화)
             const node = g.append('g')
@@ -1326,15 +1357,26 @@
                     .on('drag', dragged)
                     .on('end', dragended));
 
-            // 라벨 추가 (조건부 렌더링)
+            // 라벨 추가 (개선된 렌더링)
             const label = g.append('g')
                 .selectAll('text')
-                .data(nodes.filter(d => !performanceMode || d.type === 'service' || d.connections > 3))
+                .data(nodes.filter(d => {
+                    if (smartPerformanceMode) {
+                        return d.type === 'service' || d.connections > 5;
+                    } else if (performanceMode) {
+                        return d.type === 'service' || d.connections > 2;
+                    } else {
+                        return true;
+                    }
+                }))
                 .enter().append('text')
                 .attr('class', 'node-label')
                 .attr('dy', d => getNodeSize(d) + 18)
-                .text(d => truncateText(d.id, performanceMode ? 15 : 25))
-                .style('display', performanceMode ? 'none' : null);
+                .text(d => {
+                    const maxLength = smartPerformanceMode ? 12 : (performanceMode ? 18 : 25);
+                    return truncateText(d.id, maxLength);
+                })
+                .style('display', smartPerformanceMode ? 'none' : null);
 
             // 이벤트 리스너
             node
@@ -1400,11 +1442,28 @@
             updateLabelsVisibility();
         }
 
-        // 노드 크기 계산 (성능 최적화)
+        // 노드 크기 계산 (개선된 균형)
         function getNodeSize(d) {
-            const baseSize = performanceMode ? 4 : 6;
-            const maxSize = performanceMode ? 20 : 30;
-            const connectionFactor = Math.sqrt(d.connections) * (performanceMode ? 1.2 : 1.5);
+            // 지능형 크기 조정
+            let baseSize, maxSize, connectionFactor;
+            
+            if (smartPerformanceMode && nodes.length > 1000) {
+                // 극대 데이터 모드
+                baseSize = 3;
+                maxSize = 15;
+                connectionFactor = Math.sqrt(d.connections) * 1.0;
+            } else if (performanceMode) {
+                // 일반 성능 모드 - 시각적 품질 개선
+                baseSize = 5;
+                maxSize = 25;
+                connectionFactor = Math.sqrt(d.connections) * 1.3;
+            } else {
+                // 일반 모드
+                baseSize = 6;
+                maxSize = 30;
+                connectionFactor = Math.sqrt(d.connections) * 1.5;
+            }
+            
             return Math.max(baseSize, Math.min(baseSize + connectionFactor, maxSize));
         }
 
@@ -1514,23 +1573,28 @@
             }
         }
 
-        // 노드 가시성 업데이트 (LOD)
+        // 노드 가시성 업데이트 (개선된 LOD)
         function updateNodeVisibility() {
-            if (!g || !performanceMode) return;
+            if (!g) return;
 
             const nodeSelection = g.selectAll('.node');
             const linkSelection = g.selectAll('.link');
             const labelSelection = g.selectAll('.node-label');
 
-            // 거리별 레벨 오브 디테일
-            if (currentScale < 0.3) {
-                // 극도 축소: 중요 노드만
-                nodeSelection.style('display', d => d.connections > 5 ? null : 'none');
+            // 지능형 거리별 레벨 오브 디테일
+            if (smartPerformanceMode && currentScale < 0.2) {
+                // 극대 데이터 모드: 최소한만 표시
+                nodeSelection.style('display', d => d.connections > 8 ? null : 'none');
                 linkSelection.style('display', 'none');
                 labelSelection.style('display', 'none');
-            } else if (currentScale < 0.7) {
-                // 축소: 연결이 많은 노드 우선
-                nodeSelection.style('display', d => d.connections > 2 ? null : 'none');
+            } else if (currentScale < 0.3) {
+                // 극도 축소: 중요 노드만 (전보다 완화)
+                nodeSelection.style('display', d => d.connections > 4 ? null : 'none');
+                linkSelection.style('display', d => d.weight > 2 ? null : 'none');
+                labelSelection.style('display', 'none');
+            } else if (currentScale < 0.6) {
+                // 축소: 더 많은 요소 표시
+                nodeSelection.style('display', d => d.connections > 1 ? null : 'none');
                 linkSelection.style('display', d => d.weight > 1 ? null : 'none');
                 labelSelection.style('display', 'none');
             } else {
@@ -1541,17 +1605,26 @@
             }
         }
 
-        // 확대 시 라벨 표시 (성능 최적화)
+        // 확대 시 라벨 표시 (개선된 균형)
         function updateLabelsVisibility() {
-            if (performanceMode && currentScale < 1.0) {
+            // 극대 데이터에서만 엄격한 제한
+            if (smartPerformanceMode && currentScale < 0.8) {
                 g.selectAll('.node-label').classed('visible', false);
                 return;
             }
+            
+            // 성능 모드에서 완화된 제한
+            if (performanceMode && currentScale < 0.7) {
+                g.selectAll('.node-label')
+                    .classed('visible', d => d.type === 'service' && d.connections > 3);
+                return;
+            }
 
-            const showLabels = currentScale > 1.5;
+            // 일반적인 라벨 표시 로직
+            const showLabels = currentScale > 1.2; // 전보다 낮은 임계값
             g.selectAll('.node-label')
                 .classed('visible', function(d) {
-                    return showLabels || (d.type === 'service' && currentScale > 0.8);
+                    return showLabels || (d.type === 'service' && currentScale > 0.6);
                 });
         }
 
@@ -1704,6 +1777,7 @@
 
             document.getElementById('resetZoom').addEventListener('click', () => {
                 performanceMode = false;
+                smartPerformanceMode = false; // 모든 성능 모드 해제
                 svg.transition().duration(800).call(zoom.transform, d3.zoomIdentity);
                 setTimeout(() => updateNodeVisibility(), 1000);
             });
