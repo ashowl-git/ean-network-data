@@ -2,17 +2,16 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>EAN 계약 네트워크</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EAN 계약 네트워크</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-
-<link rel="preload" href="styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="styles.css"></noscript>
-
+    <link rel="preload" href="styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="styles.css"></noscript>
 </head>
 <body>
     <div class="container">
-        
         <div class="graph-container">
+            <!-- 로딩 화면 -->
             <div class="loading" id="loading">
                 <div class="eco-spinner"></div>
                 <div class="loading-text">
@@ -63,7 +62,6 @@
                             </div>
                         </div>
                         
-                        <!-- 통계 정보 추가 -->
                         <div class="timeline-stats">
                             <div class="stat-item">
                                 <span class="stat-label">총 노드:</span>
@@ -89,14 +87,13 @@
                         <button class="filter-btn" data-type="service-only">수행용역만</button>
                     </div>
                     
-                    <!-- 범례 이동 -->
                     <div class="inline-legend">
                         <div class="legend-item">
                             <div class="legend-color" style="background: #3b82f6;"></div>
                             <span>계약명</span>
                         </div>
                         <div class="legend-item">
-                            <div class="legend-color" style="background: #10b981;"></div>
+                            <div class="legend-color" style="background: #047857;"></div>
                             <span>수행용역</span>
                         </div>
                     </div>
@@ -123,12 +120,7 @@
                         <!-- 수행용역 리스트가 여기에 동적으로 생성됩니다 -->
                     </div>
                 </div>
-                
-                <!-- 범례는 노드타입 하단으로 이동됨 -->
-                
             </div>
-            
-            <!-- 줌 컨트롤은 검색 입력창 옆으로 이동됨 -->
             
             <button class="clear-selection" id="clearSelection">선택 해제</button>
             
@@ -163,12 +155,17 @@
         let visibleLinks = [];
         let nodeQuadTree = null;
         let performanceMode = false;
-        let smartPerformanceMode = false; // 지능형 성능 모드
+        let smartPerformanceMode = false;
+        let viewport = { x: 0, y: 0, width: 0, height: 0, scale: 1 };
+        let nodePool = [];
+        let linkPool = [];
+        let lastZoomTime = 0;
+        let isZooming = false;
 
-        // 색상 스키마 (눈의 피로 감소를 위한 부드러운 색상)
+        // 색상 스키마 - 수행용역 노드를 더 진한 녹색으로 수정
         const colors = {
-            contract: '#3b82f6',    // 파란색 - 계약명
-            service: '#10b981'      // 초록색 - 수행용역
+            contract: '#3b82f6',
+            service: '#047857'  // 연결선보다 더 진한 녹색
         };
 
         // 초기화
@@ -187,19 +184,17 @@
             }
         });
 
-        // 최적화된 데이터 로드 (JSON 우선, CSV 폴백)
+        // 데이터 로드
         async function loadData() {
             try {
-                // JSON 파일 로드 시도
                 console.log('JSON 데이터 로드 중...');
                 const startTime = performance.now();
                 
-                const response = await fetch('./data.json');
+                const response = await fetch('data.json');
                 const jsonData = await response.json();
                 
                 console.log(`JSON 로드 완료: ${jsonData.records.length.toLocaleString()}개 레코드`);
                 
-                // 인덱스를 실제 값으로 변환
                 allData = jsonData.records.map(record => ({
                     year: jsonData.lookup.years[record[0]],
                     contract: jsonData.lookup.contracts[record[1]], 
@@ -211,17 +206,12 @@
                 
             } catch (error) {
                 console.warn('JSON 로드 실패, CSV로 폴백:', error);
-                // CSV 폴백
                 await loadDataCSV();
             }
 
             filteredData = [...allData];
             createNetworkData();
-            
-            // 타임라인 룰러 초기화
             initializeTimelineRuler();
-            
-            // 수행용역 브라우저 초기화
             initializeServiceBrowser();
         }
 
@@ -230,10 +220,9 @@
             console.log('CSV 데이터 로드 중...');
             const startTime = performance.now();
             
-            const response = await fetch('./data.json');
+            const response = await fetch('202508_EAN계약현황_완전본.csv');
             const text = await response.text();
             
-            // CSV 파싱
             const lines = text.trim().split('\n');
             const headers = lines[0].split(',');
             
@@ -250,7 +239,7 @@
             console.log(`CSV 파싱 완료: ${allData.length.toLocaleString()}개 항목 (${(endTime - startTime).toFixed(1)}ms)`);
         }
 
-        // CSV 라인 파싱 (따옴표 처리)
+        // CSV 라인 파싱
         function parseCSVLine(line) {
             const result = [];
             let current = '';
@@ -273,12 +262,11 @@
             return result;
         }
 
-        // 네트워크 데이터 생성 (발주처 제거됨)
+        // 네트워크 데이터 생성
         function createNetworkData() {
             const nodeMap = new Map();
             const linkMap = new Map();
 
-            // 노드 생성
             filteredData.forEach(d => {
                 // 계약명 노드
                 if (!nodeMap.has(d.contract)) {
@@ -299,7 +287,7 @@
                     });
                 }
 
-                // 링크 생성 (계약명 - 수행용역만)
+                // 링크 생성
                 const linkId = d.contract < d.service ? `${d.contract}|${d.service}` : `${d.service}|${d.contract}`;
                 if (!linkMap.has(linkId)) {
                     linkMap.set(linkId, {
@@ -328,39 +316,32 @@
             const minYear = Math.min(...years);
             const maxYear = Math.max(...years);
             
-            // 전역 변수 업데이트
             yearRange.min = minYear;
             yearRange.max = maxYear;
             
-            // 룰러 렌더링
             setTimeout(() => renderTimelineRuler(minYear, maxYear), 100);
-            
-            // 디스플레이 업데이트
             updateTimelineDisplay();
         }
-        
+
         function renderTimelineRuler(minYear, maxYear) {
             const ticksContainer = document.querySelector('.ruler-ticks');
             const labelsContainer = document.querySelector('.ruler-labels');
             
             if (!ticksContainer || !labelsContainer) return;
             
-            // 기존 요소 제거
             ticksContainer.innerHTML = '';
             labelsContainer.innerHTML = '';
             
             const totalYears = maxYear - minYear;
-            
-            // 주요 눈금만 생성 (시작, 중간점들, 끝)
             const majorYears = [minYear];
-            const yearStep = Math.max(1, Math.floor(totalYears / 4)); // 최대 5개 구간
+            const yearStep = Math.max(1, Math.floor(totalYears / 4));
+            
             for (let i = 1; i < 4; i++) {
                 const year = minYear + (yearStep * i);
                 if (year < maxYear) majorYears.push(year);
             }
             if (maxYear !== minYear) majorYears.push(maxYear);
             
-            // 주요 눈금 생성
             majorYears.forEach(year => {
                 const position = totalYears === 0 ? 50 : ((year - minYear) / totalYears) * 100;
                 
@@ -370,10 +351,9 @@
                 ticksContainer.appendChild(tick);
             });
             
-            // 선택 범위 업데이트 (라벨은 여기서 생성)
             updateRangeSelection(minYear, maxYear, minYear, maxYear);
         }
-        
+
         function updateRangeSelection(minYear, maxYear, startYear, endYear) {
             const totalYears = maxYear - minYear;
             const startPos = totalYears === 0 ? 0 : ((startYear - minYear) / totalYears) * 100;
@@ -394,11 +374,9 @@
                 rangeFill.style.width = `${Math.max(1, endPos - startPos)}%`;
             }
             
-            // 기존 라벨 제거 후 선택된 시작/끝 연도만 표시
             if (labelsContainer) {
                 labelsContainer.innerHTML = '';
                 
-                // 시작 연도 라벨
                 const startLabel = document.createElement('div');
                 startLabel.className = 'ruler-year selected';
                 startLabel.textContent = startYear;
@@ -406,7 +384,6 @@
                 startLabel.dataset.year = startYear;
                 labelsContainer.appendChild(startLabel);
                 
-                // 끝 연도 라벨 (시작과 다른 경우만)
                 if (startYear !== endYear) {
                     const endLabel = document.createElement('div');
                     endLabel.className = 'ruler-year selected';
@@ -417,7 +394,7 @@
                 }
             }
         }
-        
+
         function updateTimelineDisplay() {
             const startEl = document.getElementById('timelineStart');
             const endEl = document.getElementById('timelineEnd');
@@ -427,20 +404,19 @@
 
         // 그래프 초기화
         function initGraph() {
-  // ⭐ Starfield layout tuning parameters
-  const STARFIELD = {
-    chargeStrength: -1500,
-    distanceMin: 60,
-    distanceMax: 2000,
-    linkDistance: 180,
-    linkStrength: 0.4,
-    collidePadding: 24,
-    collideStrength: 1.0,
-    centerStrength: 0.03,
-    axisStrength: 0.004,
-    alphaDecay: 0.02,
-    velocityDecay: 0.38
-  };
+            const STARFIELD = {
+                chargeStrength: -1500,
+                distanceMin: 60,
+                distanceMax: 2000,
+                linkDistance: 180,
+                linkStrength: 0.4,
+                collidePadding: 24,
+                collideStrength: 1.0,
+                centerStrength: 0.03,
+                axisStrength: 0.004,
+                alphaDecay: 0.02,
+                velocityDecay: 0.38
+            };
 
             const container = document.querySelector('.graph-container');
             width = container.clientWidth;
@@ -450,93 +426,85 @@
                 .attr('width', width)
                 .attr('height', height);
 
-            // 줌 설정 (성능 최적화)
             zoom = d3.zoom()
                 .scaleExtent([0.1, 4])
-                .on('zoom', throttle((event) => {
-                    g.attr('transform', event.transform);
-                    currentScale = event.transform.k;
+                .on('start', () => {
+                    isZooming = true;
+                    lastZoomTime = performance.now();
+                })
+                .on('zoom', throttleZoom((event) => {
+                    // GPU 가속을 위한 transform3d 사용
+                    const transform = event.transform;
+                    g.style('transform', `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.k})`);
+                    currentScale = transform.k;
                     
-                    // 지능형 성능 모드 조정
+                    // 뷰포트 업데이트
+                    updateViewport(transform);
+                    
                     const nodeCount = nodes.length;
-                    smartPerformanceMode = nodeCount > 1000;
-                    performanceMode = nodeCount > 500 || currentScale < 0.3;
+                    smartPerformanceMode = nodeCount > 2000;
+                    performanceMode = nodeCount > 1000 || currentScale < 0.3;
                     
-                    // 효율적인 라벨 업데이트
-                    requestAnimationFrame(() => {
-                        updateLabelsVisibility();
-                        updateNodeVisibility();
-                    });
-                }, 16));
+                    // 뷰포트 기반 렌더링
+                    updateViewportRendering();
+                }, 8))
+                .on('end', () => {
+                    isZooming = false;
+                    // 줌 종료 후 품질 복원
+                    setTimeout(() => {
+                        if (!isZooming) {
+                            updateLabelsVisibility();
+                            updateNodeVisibility();
+                        }
+                    }, 100);
+                });
 
             svg.call(zoom);
             g = svg.append('g');
 
-            // 시뮬레이션 설정 (시각성 우선)
             const nodeCount = nodes.length;
-            smartPerformanceMode = nodeCount > 2000; // 임계값 증가
-            performanceMode = nodeCount > 1000; // 임계값 증가
+            smartPerformanceMode = nodeCount > 2000;
+            performanceMode = nodeCount > 1000;
             
-            let forceStrength, distanceMax, alphaDecay;
-            
-            // 우주의 별들처럼 넓게 분산된 네트워크
-            if (smartPerformanceMode) {
-                forceStrength = -400;
-                distanceMax = 500;
-                alphaDecay = 0.04;
-            } else if (performanceMode) {
-                forceStrength = -600;
-                distanceMax = 700;
-                alphaDecay = 0.03;
-            } else {
-                forceStrength = -800;
-                distanceMax = null;
-                alphaDecay = 0.02;
-            }
-            
-            \
-simulation = d3.forceSimulation(nodes)
-  .force('link', d3.forceLink(links)
-    .id(d => d.id)
-    .distance(STARFIELD.linkDistance)
-    .strength(STARFIELD.linkStrength)
-  )
-  .force('charge', d3.forceManyBody()
-    .strength(STARFIELD.chargeStrength)
-    .distanceMin(STARFIELD.distanceMin)
-    .distanceMax(STARFIELD.distanceMax)
-  )
-  .force('center', d3.forceCenter(width / 2, height / 2).strength(STARFIELD.centerStrength))
-  .force('collision', d3.forceCollide().radius(d => (d._r || getNodeSize(d)) + STARFIELD.collidePadding)
-    .strength(STARFIELD.collideStrength)
-  )
-  .force('x', d3.forceX(width / 2).strength(STARFIELD.axisStrength))
-  .force('y', d3.forceY(height / 2).strength(STARFIELD.axisStrength))
-  .alphaDecay(STARFIELD.alphaDecay)
-  .alphaMin(0.001)
-  .velocityDecay(STARFIELD.velocityDecay);
+            // 노드 반지름 미리 캐시
+            nodes.forEach(d => { 
+                d._r = getNodeSize(d);
+            });
 
+            simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links)
+                    .id(d => d.id)
+                    .distance(STARFIELD.linkDistance)
+                    .strength(STARFIELD.linkStrength)
+                )
+                .force('charge', d3.forceManyBody()
+                    .strength(STARFIELD.chargeStrength)
+                    .distanceMin(STARFIELD.distanceMin)
+                    .distanceMax(STARFIELD.distanceMax)
+                )
+                .force('center', d3.forceCenter(width / 2, height / 2).strength(STARFIELD.centerStrength))
+                .force('collision', d3.forceCollide().radius(d => (d._r || getNodeSize(d)) + STARFIELD.collidePadding)
+                    .strength(STARFIELD.collideStrength)
+                )
+                .force('x', d3.forceX(width / 2).strength(STARFIELD.axisStrength))
+                .force('y', d3.forceY(height / 2).strength(STARFIELD.axisStrength))
+                .alphaDecay(STARFIELD.alphaDecay)
+                .alphaMin(0.001)
+                .velocityDecay(STARFIELD.velocityDecay);
 
             renderGraph();
             document.getElementById('loading').style.display = 'none';
         }
 
-        // 그래프 렌더링 (성능 최적화)
+        // 그래프 렌더링
         function renderGraph() {
-  // Cache node radius to avoid repeated getNodeSize() calls in ticks
-  if (Array.isArray(nodes)) {
-    nodes.forEach(d => { d._r = (typeof getNodeSize === 'function') ? getNodeSize(d) : (d._r || 6); });
-  }
-
-            // 기존 요소 제거
             g.selectAll('*').remove();
 
-            // 성능 모드 체크 (시각성 우선)
             const nodeCount = nodes.length;
             smartPerformanceMode = nodeCount > 2000;
             performanceMode = nodeCount > 1000;
             
-            // 링크 그리기 (개선된 시각 효과)
+            // 링크 그리기
             const link = g.append('g')
                 .selectAll('line')
                 .data(links)
@@ -544,18 +512,17 @@ simulation = d3.forceSimulation(nodes)
                 .attr('class', 'link')
                 .attr('stroke-width', d => {
                     if (smartPerformanceMode) {
-                        return Math.min(Math.sqrt(d.weight) * 1.0 + 1, 3)
-  .style('opacity', 0.5)
-;
+                        return Math.min(Math.sqrt(d.weight) * 1.0 + 1, 3);
                     } else if (performanceMode) {
                         return Math.min(Math.sqrt(d.weight) * 1.2 + 1, 4.5);
                     } else {
                         return Math.min(Math.sqrt(d.weight) * 1.3 + 1.5, 6);
                     }
                 })
+                .style('opacity', smartPerformanceMode ? 0.5 : 0.4)
                 .style('display', smartPerformanceMode && currentScale < 0.1 ? 'none' : null);
 
-            // 노드 그리기 (성능 최적화)
+            // 노드 그리기
             const node = g.append('g')
                 .selectAll('circle')
                 .data(nodes)
@@ -568,21 +535,26 @@ simulation = d3.forceSimulation(nodes)
                     .on('start', dragstarted)
                     .on('drag', dragged)
                     .on('end', dragended))
-  .on('mouseover', (event, d) => {
-    g.selectAll('.node-label')
-      .filter(l => l.id === d.id)
-      .classed('visible', true)
-      .classed('hovered', true);
-  })
-  .on('mouseout', (event, d) => {
-    g.selectAll('.node-label')
-      .filter(l => l.id === d.id)
-      .classed('hovered', false)
-      .classed('visible', l => l.type === 'service');
-  })
-;
+                .on('mouseover', (event, d) => {
+                    g.selectAll('.node-label')
+                      .filter(l => l.id === d.id)
+                      .classed('visible', true)
+                      .classed('hovered', true);
+                    showTooltip(event, d);
+                })
+                .on('mouseout', (event, d) => {
+                    g.selectAll('.node-label')
+                      .filter(l => l.id === d.id)
+                      .classed('hovered', false)
+                      .classed('visible', l => l.type === 'service');
+                    hideTooltip();
+                })
+                .on('click', (event, d) => {
+                    event.stopPropagation();
+                    selectNode(d);
+                });
 
-            // 라벨 추가 (시각성 우선)
+            // 라벨 추가
             const label = g.append('g')
                 .selectAll('text')
                 .data(nodes.filter(d => d.type === 'service'))
@@ -590,44 +562,11 @@ simulation = d3.forceSimulation(nodes)
                 .attr('class', 'node-label')
                 .attr('dy', d => getNodeSize(d) + 18)
                 .text(d => {
-                    const maxLength = smartPerformanceMode ? 15 : (performanceMode ? 20 : 25)
-  .classed('vis
-  // Lazy label creation for non-service nodes
-  const createdLabelIds = new Set();
-  g.selectAll('.node-label').each(function(d){ if (d && d.id) createdLabelIds.add(d.id); });
-
-  function ensureLabelFor(nodeDatum) {
-    if (!nodeDatum || !nodeDatum.id) return;
-    if (createdLabelIds.has(nodeDatum.id)) {
-      // already exists
-      return;
-    }
-    const maxLength = smartPerformanceMode ? 15 : (performanceMode ? 20 : 30);
-    g.append('text')
-      .datum(nodeDatum)
-      .attr('class', 'node-label')
-      .attr('dy', (nodeDatum._r || getNodeSize(nodeDatum)) + 18)
-      .text(truncateText(nodeDatum.id, maxLength))
-      .classed('visible', true);
-    createdLabelIds.add(nodeDatum.id);
-  }
-ible', d => d.type === 'service');
+                    const maxLength = smartPerformanceMode ? 15 : (performanceMode ? 20 : 25);
                     return truncateText(d.id, maxLength);
                 })
+                .classed('visible', d => d.type === 'service')
                 .style('display', smartPerformanceMode && currentScale < 0.2 ? 'none' : null);
-
-            // 이벤트 리스너
-            node
-                .on('mouseover', (event, d) => {
-                    showTooltip(event, d);
-                })
-                .on('mouseout', () => {
-                    hideTooltip();
-                })
-                .on('click', (event, d) => {
-                    event.stopPropagation();
-                    selectNode(d);
-                });
 
             // 배경 클릭 시 선택 해제
             svg.on('click', () => {
@@ -640,10 +579,9 @@ ible', d => d.type === 'service');
 
             simulation.on('tick', () => {
                 const now = Date.now();
-                if (now - lastUpdateTime < 16) return; // 60fps 제한
+                if (now - lastUpdateTime < 16) return;
                 lastUpdateTime = now;
 
-                // 뷰포트 내 요소만 업데이트
                 updateVisibleElements();
 
                 link
@@ -661,11 +599,9 @@ ible', d => d.type === 'service');
                     .attr('y', d => d.y);
             });
 
-            // 시뮬레이션 시작 (성능 최적화)
             isSimulationRunning = true;
             simulation.alpha(performanceMode ? 0.8 : 1).restart();
             
-            // 성능 모드에서 시뮬레이션 자동 중지
             if (performanceMode) {
                 setTimeout(() => {
                     if (simulation.alpha() < 0.1) {
@@ -675,28 +611,23 @@ ible', d => d.type === 'service');
                 }, 3000);
             }
 
-            // 초기 모드 설정
             updateNodeVisibility();
             updateLabelsVisibility();
         }
 
-        // 노드 크기 계산 (개선된 균형)
+        // 노드 크기 계산
         function getNodeSize(d) {
-            // 지능형 크기 조정
             let baseSize, maxSize, connectionFactor;
             
             if (smartPerformanceMode && nodes.length > 1000) {
-                // 극대 데이터 모드
                 baseSize = 4;
                 maxSize = 18;
                 connectionFactor = Math.sqrt(d.connections) * 1.2;
             } else if (performanceMode) {
-                // 일반 성능 모드 - 시각적 품질 개선
                 baseSize = 7;
                 maxSize = 28;
                 connectionFactor = Math.sqrt(d.connections) * 1.5;
             } else {
-                // 일반 모드
                 baseSize = 8;
                 maxSize = 35;
                 connectionFactor = Math.sqrt(d.connections) * 1.8;
@@ -709,7 +640,6 @@ ible', d => d.type === 'service');
         function selectNode(targetNode) {
             selectedNode = targetNode;
             
-            // 연결된 노드들 찾기
             const connectedNodes = new Set([targetNode.id]);
             const connectedLinks = new Set();
             
@@ -721,25 +651,21 @@ ible', d => d.type === 'service');
                 }
             });
 
-            // 노드 스타일 적용
             g.selectAll('.node')
                 .classed('blurred', d => !connectedNodes.has(d.id))
                 .classed('highlighted', d => connectedNodes.has(d.id));
 
-            // 링크 스타일 적용
             g.selectAll('.link')
                 .classed('blurred', d => !connectedLinks.has(d))
                 .classed('highlighted', d => connectedLinks.has(d));
 
-            // 선택 해제 버튼 표시
             document.getElementById('clearSelection').classList.add('visible');
         }
 
-        // 선택 해제 (수행용역 선택도 해제)
+        // 선택 해제
         function clearSelection() {
             selectedNode = null;
             
-            // 수행용역 선택도 해제
             selectedServices.clear();
             showSelectedOnly = false;
             document.getElementById('showSelectedOnly').classList.remove('active');
@@ -761,7 +687,6 @@ ible', d => d.type === 'service');
 
             document.getElementById('clearSelection').classList.remove('visible');
             
-            // 수행용역 브라우저 업데이트
             updateServiceCount();
             renderServiceList();
         }
@@ -785,6 +710,72 @@ ible', d => d.type === 'service');
                 }
             };
         }
+        
+        // 줌 전용 고성능 스로틀링 (8ms)
+        function throttleZoom(func, delay) {
+            let rafId;
+            let lastExecTime = 0;
+            return function (...args) {
+                const currentTime = performance.now();
+                
+                if (currentTime - lastExecTime > delay) {
+                    func.apply(this, args);
+                    lastExecTime = currentTime;
+                } else {
+                    cancelAnimationFrame(rafId);
+                    rafId = requestAnimationFrame(() => {
+                        func.apply(this, args);
+                        lastExecTime = performance.now();
+                    });
+                }
+            };
+        }
+        
+        // 뷰포트 업데이트
+        function updateViewport(transform) {
+            viewport.x = -transform.x / transform.k;
+            viewport.y = -transform.y / transform.k;
+            viewport.width = width / transform.k;
+            viewport.height = height / transform.k;
+            viewport.scale = transform.k;
+        }
+        
+        // 뷰포트 기반 렌더링 최적화
+        function updateViewportRendering() {
+            if (!g || nodes.length === 0) return;
+            
+            const buffer = Math.max(100, 300 / viewport.scale); // 동적 버퍼
+            const viewBounds = {
+                left: viewport.x - buffer,
+                right: viewport.x + viewport.width + buffer,
+                top: viewport.y - buffer,
+                bottom: viewport.y + viewport.height + buffer
+            };
+            
+            // 뷰포트 내 노드만 표시
+            g.selectAll('.node').style('display', d => {
+                if (!d.x || !d.y) return 'none';
+                const inViewport = d.x >= viewBounds.left && 
+                                  d.x <= viewBounds.right && 
+                                  d.y >= viewBounds.top && 
+                                  d.y <= viewBounds.bottom;
+                return inViewport ? null : 'none';
+            });
+            
+            // 줌 레벨에 따른 링크 표시 조정
+            if (viewport.scale < 0.2 && links.length > 2000) {
+                g.selectAll('.link').style('display', 'none');
+            } else if (viewport.scale < 0.5 && links.length > 5000) {
+                // 중요 링크만 표시 (가중치 높은 것)
+                g.selectAll('.link').style('display', d => d.weight > 2 ? null : 'none');
+            } else {
+                g.selectAll('.link').style('display', null);
+            }
+            
+            // 라벨 표시 최적화
+            const showLabels = viewport.scale > 0.3;
+            g.selectAll('.node-label').style('display', showLabels ? null : 'none');
+        }
 
         // 뷰포트 내 요소만 업데이트
         function updateVisibleElements() {
@@ -798,7 +789,6 @@ ible', d => d.type === 'service');
                 height: height / transform.k
             };
 
-            // 뷰포트 내 노드 필터링 (성능 모드일 때만)
             if (performanceMode) {
                 visibleNodes = nodes.filter(d => 
                     d.x >= viewBox.x - 50 && 
@@ -811,44 +801,37 @@ ible', d => d.type === 'service');
             }
         }
 
-        // 노드 가시성 업데이트 (시각성 우선)
+        // 노드 가시성 업데이트
         function updateNodeVisibility() {
             if (!g) return;
 
             const nodeSelection = g.selectAll('.node');
-  nodeSelection.style('opacity', d => d.connections > 0 ? 0.95 : 0.6);
+            nodeSelection.style('opacity', d => d.connections > 0 ? 0.95 : 0.6);
+            
             const linkSelection = g.selectAll('.link');
-  linkSelection.style('opacity', 0.4);
-            const labelSelection = g.selectAll('.node-label');
-
-            // 대부분의 경우 모든 노드 표시
+            linkSelection.style('opacity', 0.4);
+            
             if (smartPerformanceMode && currentScale < 0.1) {
-                // 극도로 축소된 경우에만 일부 제한
                 nodeSelection.style('display', null);
                 linkSelection.style('display', null);
-                labelSelection.style('display', null);
             } else if (currentScale < 0.2) {
-                // 많이 축소: 중요 노드 위주
                 nodeSelection.style('display', null);
                 linkSelection.style('display', null);
-                labelSelection.style('display', null);
             } else {
-                // 일반적인 경우: 모든 요소 표시
                 nodeSelection.style('display', null);
                 linkSelection.style('display', null);
                 updateLabelsVisibility();
             }
         }
 
-        // 라벨 표시 (시각성 우선)
+        // 라벨 표시
         function updateLabelsVisibility() {
-  // Keep service labels visible
-  g.selectAll('.node-label').each(function(d){
-    const sel = d3.select(this);
-    if (d && d.type === 'service') sel.classed('visible', true);
-  });
-});
-});
+            if (!g) return;
+            
+            g.selectAll('.node-label').each(function(d){
+                const sel = d3.select(this);
+                if (d && d.type === 'service') sel.classed('visible', true);
+            });
         }
 
         // 텍스트 자르기
@@ -887,7 +870,7 @@ ible', d => d.type === 'service');
             return labels[type] || type;
         }
 
-        // 드래그 이벤트 (성능 최적화)
+        // 드래그 이벤트
         function dragstarted(event, d) {
             if (!event.active && !isSimulationRunning) {
                 simulation.alphaTarget(0.3).restart();
@@ -905,7 +888,6 @@ ible', d => d.type === 'service');
         function dragended(event, d) {
             if (!event.active) {
                 simulation.alphaTarget(0);
-                // 성능 모드에서 빠른 종료
                 if (performanceMode) {
                     setTimeout(() => {
                         simulation.stop();
@@ -919,19 +901,16 @@ ible', d => d.type === 'service');
 
         // 이벤트 리스너 설정
         function setupEventListeners() {
-            // 검색 (수행용역 필터와 연동)
+            // 검색
             document.getElementById('searchInput').addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase();
                 
-                // 수행용역 검색 결과도 업데이트
                 if (query) {
-                    // 검색어와 매칭되는 수행용역 자동 하이라이트
                     const matchingServices = allServices.filter(service => 
                         service.toLowerCase().includes(query)
                     );
                     
                     if (matchingServices.length > 0 && matchingServices.length <= 3) {
-                        // 매칭되는 수행용역이 3개 이하면 자동 선택
                         selectedServices.clear();
                         matchingServices.forEach(service => selectedServices.add(service));
                         updateServiceHighlighting();
@@ -939,7 +918,6 @@ ible', d => d.type === 'service');
                         renderServiceList();
                     }
                 } else {
-                    // 검색어가 비어있으면 수행용역 선택 해제
                     if (selectedServices.size > 0) {
                         selectedServices.clear();
                         updateServiceHighlighting();
@@ -955,7 +933,6 @@ ible', d => d.type === 'service');
             let isDragging = false;
             let dragTarget = null;
             
-            // 드래그 시작
             document.addEventListener('mousedown', (e) => {
                 const handle = e.target.closest('.range-handle');
                 if (handle) {
@@ -965,7 +942,6 @@ ible', d => d.type === 'service');
                 }
             });
             
-            // 드래그 중
             document.addEventListener('mousemove', (e) => {
                 if (!isDragging || !dragTarget) return;
                 
@@ -973,8 +949,8 @@ ible', d => d.type === 'service');
                 if (!ruler) return;
                 
                 const rect = ruler.getBoundingClientRect();
-                const x = e.clientX - rect.left - 15; // 15px padding
-                const width = rect.width - 30; // 양쪽 padding 제외
+                const x = e.clientX - rect.left - 15;
+                const width = rect.width - 30;
                 const percentage = Math.max(0, Math.min(100, (x / width) * 100));
                 
                 const minYear = Math.min(...availableYears);
@@ -993,14 +969,12 @@ ible', d => d.type === 'service');
                 applyFilters();
             });
             
-            // 드래그 종료
             document.addEventListener('mouseup', () => {
                 isDragging = false;
                 dragTarget = null;
             });
-            
 
-            // 노드 타입 필터 (수정됨 - 발주처 제거)
+            // 노드 타입 필터
             document.getElementById('nodeTypeFilters').addEventListener('click', (e) => {
                 if (e.target.classList.contains('filter-btn')) {
                     document.querySelectorAll('#nodeTypeFilters .filter-btn').forEach(btn => 
@@ -1013,17 +987,22 @@ ible', d => d.type === 'service');
 
             // 줌 컨트롤
             document.getElementById('zoomIn').addEventListener('click', () => {
-                svg.transition().duration(performanceMode ? 200 : 500).call(zoom.scaleBy, 1.2);
+                const duration = smartPerformanceMode ? 150 : (performanceMode ? 200 : 400);
+                svg.transition().duration(duration).call(zoom.scaleBy, 1.2);
             });
 
             document.getElementById('zoomOut').addEventListener('click', () => {
-                svg.transition().duration(performanceMode ? 200 : 500).call(zoom.scaleBy, 0.8);
+                const duration = smartPerformanceMode ? 150 : (performanceMode ? 200 : 400);
+                svg.transition().duration(duration).call(zoom.scaleBy, 0.8);
             });
 
             document.getElementById('resetZoom').addEventListener('click', () => {
-                // 성능 모드는 노드 수에 따라 자동 결정되도록 유지
-                svg.transition().duration(800).call(zoom.transform, d3.zoomIdentity);
-                setTimeout(() => updateNodeVisibility(), 1000);
+                const duration = smartPerformanceMode ? 300 : 600;
+                svg.transition().duration(duration).call(zoom.transform, d3.zoomIdentity);
+                setTimeout(() => {
+                    updateNodeVisibility();
+                    updateLabelsVisibility();
+                }, duration + 100);
             });
 
             // 선택 해제 버튼
@@ -1031,7 +1010,7 @@ ible', d => d.type === 'service');
                 clearSelection();
             });
 
-            // 윈도우 리사이즈 (성능 최적화)
+            // 윈도우 리사이즈
             window.addEventListener('resize', throttle(() => {
                 const container = document.querySelector('.graph-container');
                 width = container.clientWidth;
@@ -1056,7 +1035,6 @@ ible', d => d.type === 'service');
             const searchQuery = document.getElementById('searchInput').value.toLowerCase();
             const activeType = document.querySelector('#nodeTypeFilters .filter-btn.active')?.dataset.type;
 
-            // 데이터 필터링
             filteredData = allData.filter(d => {
                 const matchesSearch = !searchQuery || 
                     d.contract.toLowerCase().includes(searchQuery) ||
@@ -1068,10 +1046,8 @@ ible', d => d.type === 'service');
                 return matchesSearch && matchesYear;
             });
 
-            // 네트워크 데이터 재생성
             createNetworkData();
 
-            // 노드 타입 필터링
             if (activeType !== 'all') {
                 let allowedTypes = [];
                 
@@ -1092,10 +1068,7 @@ ible', d => d.type === 'service');
                 });
             }
 
-            // 선택 해제
             clearSelection();
-
-            // 그래프 재렌더링
             renderGraph();
             updateStats();
         }
@@ -1109,7 +1082,6 @@ ible', d => d.type === 'service');
 
         // 수행용역 브라우저 초기화
         function initializeServiceBrowser() {
-            // 모든 수행용역 추출 및 정렬
             const serviceSet = new Set();
             allData.forEach(d => {
                 if (d.service && d.service.trim()) {
@@ -1121,13 +1093,8 @@ ible', d => d.type === 'service');
             
             console.log(`수행용역 ${allServices.length}개 추출 완료:`, allServices);
             
-            // 수행용역 리스트 렌더링
             renderServiceList();
-            
-            // 이벤트 리스너 설정
             setupServiceBrowserEvents();
-            
-            // 카운트 업데이트
             updateServiceCount();
         }
 
@@ -1141,7 +1108,6 @@ ible', d => d.type === 'service');
             serviceList.innerHTML = '';
             
             filteredServices.forEach(service => {
-                // 해당 수행용역과 연결된 계약 수 계산
                 const contractCount = allData.filter(d => d.service === service).length;
                 
                 const serviceItem = document.createElement('div');
@@ -1162,13 +1128,11 @@ ible', d => d.type === 'service');
 
         // 수행용역 브라우저 이벤트 설정
         function setupServiceBrowserEvents() {
-            // 검색 기능
             const serviceSearch = document.getElementById('serviceSearch');
             serviceSearch.addEventListener('input', (e) => {
                 const query = e.target.value;
                 renderServiceList(query);
                 
-                // 검색 결과에 따른 플레이스홀더 업데이트
                 const matchingCount = allServices.filter(service => 
                     service.toLowerCase().includes(query.toLowerCase())
                 ).length;
@@ -1182,7 +1146,6 @@ ible', d => d.type === 'service');
                 }
             });
 
-            // 체크박스 클릭 이벤트 (이벤트 위임)
             const serviceList = document.getElementById('serviceList');
             serviceList.addEventListener('change', (e) => {
                 if (e.target.classList.contains('service-checkbox')) {
@@ -1201,7 +1164,6 @@ ible', d => d.type === 'service');
                 }
             });
 
-            // 라벨 클릭으로 체크박스 토글
             serviceList.addEventListener('click', (e) => {
                 if (e.target.classList.contains('service-label')) {
                     const checkbox = e.target.parentElement.querySelector('.service-checkbox');
@@ -1209,7 +1171,6 @@ ible', d => d.type === 'service');
                 }
             });
 
-            // 컨트롤 버튼들
             document.getElementById('selectAllServices').addEventListener('click', () => {
                 allServices.forEach(service => selectedServices.add(service));
                 updateServiceHighlighting();
@@ -1241,9 +1202,8 @@ ible', d => d.type === 'service');
 
         // 수행용역 선택에 따른 그래프 하이라이팅
         function updateServiceHighlighting() {
-            if (!g) return; // 그래프가 아직 초기화되지 않은 경우
+            if (!g) return;
 
-            // 선택된 수행용역이 없으면 모든 노드를 정상 상태로
             if (selectedServices.size === 0) {
                 g.selectAll('.node')
                     .classed('blurred', false)
@@ -1260,19 +1220,16 @@ ible', d => d.type === 'service');
                 return;
             }
 
-            // 선택된 수행용역과 관련된 노드들 찾기
             const selectedServiceNodes = new Set();
             const connectedContractNodes = new Set();
             const highlightedLinks = new Set();
 
-            // 선택된 수행용역 노드들과 연결된 계약들 찾기
             nodes.forEach(node => {
                 if (node.type === 'service' && selectedServices.has(node.id)) {
                     selectedServiceNodes.add(node.id);
                 }
             });
 
-            // 링크를 통해 연결된 계약들 찾기
             links.forEach(link => {
                 const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
                 const targetId = typeof link.target === 'object' ? link.target.id : link.target;
@@ -1286,10 +1243,8 @@ ible', d => d.type === 'service');
                 }
             });
 
-            // 모든 관련 노드들을 합치기
             const allRelatedNodes = new Set([...selectedServiceNodes, ...connectedContractNodes]);
 
-            // "선택만 보기" 모드 처리
             if (showSelectedOnly) {
                 g.selectAll('.node')
                     .style('display', d => allRelatedNodes.has(d.id) ? null : 'none');
@@ -1297,14 +1252,12 @@ ible', d => d.type === 'service');
                 g.selectAll('.link')
                     .style('display', d => highlightedLinks.has(d) ? null : 'none');
             } else {
-                // 모든 노드를 다시 표시
                 g.selectAll('.node')
                     .style('display', null);
                 
                 g.selectAll('.link')
                     .style('display', null);
                 
-                // 하이라이팅 적용
                 g.selectAll('.node')
                     .classed('blurred', d => !allRelatedNodes.has(d.id))
                     .classed('highlighted', d => allRelatedNodes.has(d.id))
@@ -1315,11 +1268,9 @@ ible', d => d.type === 'service');
                     .classed('highlighted', d => highlightedLinks.has(d));
             }
 
-            // 선택된 수행용역과 연결된 노드들의 라벨을 강조
             g.selectAll('.node-label')
                 .classed('service-highlighted', d => allRelatedNodes.has(d.id));
                 
-            // 선택 해제 버튼 표시
             document.getElementById('clearSelection').classList.add('visible');
         }
     </script>
