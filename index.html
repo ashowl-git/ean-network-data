@@ -256,109 +256,38 @@
             font-size: 14px;
         }
 
-        /* 플로팅 스탯 디자인 */
-        .floating-stats {
-            position: fixed;
-            top: 480px;
-            left: 20px;
-            z-index: 200;
-        }
-
-        .stats-icon {
-            width: 48px;
-            height: 48px;
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            backdrop-filter: blur(10px);
-        }
-
-        .stats-icon:hover {
-            background: rgba(16, 185, 129, 0.95);
-            border-color: rgba(16, 185, 129, 0.3);
-            box-shadow: 0 6px 25px rgba(16, 185, 129, 0.3);
-            transform: translateY(-2px) scale(1.05);
-        }
-
-        .stats-tooltip {
-            position: absolute;
-            top: 55px;
-            left: 0;
-            width: 280px;
-            background: rgba(255, 255, 255, 0.98);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-            backdrop-filter: blur(20px);
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-        }
-
-        .stats-tooltip.visible {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-            pointer-events: all;
-        }
-
-        .tooltip-header {
-            font-size: 16px;
-            font-weight: 700;
-            color: #10b981;
-            margin-bottom: 16px;
-            text-align: center;
-            border-bottom: 1px solid rgba(16, 185, 129, 0.2);
-            padding-bottom: 12px;
-        }
-
-        .stat-row {
+        .timeline-stats {
             display: flex;
             justify-content: space-between;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            gap: 8px;
+        }
+
+        .timeline-stats .stat-item {
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            gap: 4px;
+            flex: 1;
         }
 
-        .stat-row:last-of-type {
-            border-bottom: none;
-            margin-bottom: 12px;
-        }
-
-        .stat-label {
-            font-size: 14px;
-            color: #6b7280;
+        .timeline-stats .stat-label {
+            font-size: 11px;
             font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .stat-value {
+        .timeline-stats .stat-value {
             font-size: 16px;
             font-weight: 700;
             color: #10b981;
             text-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
         }
 
-        .tooltip-footer {
-            text-align: center;
-            padding-top: 12px;
-            border-top: 1px solid rgba(16, 185, 129, 0.1);
-        }
-
-        .tooltip-footer small {
-            color: #9ca3af;
-            font-size: 11px;
-            font-weight: 400;
-        }
 
         .filter-buttons {
             display: flex;
@@ -599,50 +528,23 @@
                 font-size: 28px;
             }
             
-            .floating-stats {
-                top: 400px;
-                left: 10px;
-            }
-            
-            .stats-icon {
-                width: 40px;
-                height: 40px;
-                font-size: 14px;
-            }
-            
-            .stats-tooltip {
-                width: calc(100vw - 30px);
-                max-width: 280px;
-                left: -10px;
-                padding: 14px;
-            }
-            
-            .tooltip-header {
-                font-size: 14px;
-            }
-            
-            .stat-label {
-                font-size: 13px;
-            }
-            
-            .stat-value {
-                font-size: 14px;
-            }
         }
 
         .node {
             cursor: pointer;
-            stroke-width: 2.5px;
+            stroke: none;
+            stroke-width: 0;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.2));
-            opacity: 0.9;
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.15));
+            opacity: 0.95;
         }
 
         .node:hover {
-            stroke-width: 4px;
-            filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.3));
+            stroke: none;
+            stroke-width: 0;
+            filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.25));
             opacity: 1;
-            transform: scale(1.1);
+            transform: scale(1.15);
         }
 
         .node.blurred {
@@ -1198,22 +1100,6 @@
                 min-height: auto;
             }
             
-            .floating-stats {
-                top: 420px;
-                left: 15px;
-            }
-            
-            .stats-icon {
-                width: 42px;
-                height: 42px;
-                font-size: 16px;
-            }
-            
-            .stats-tooltip {
-                width: 240px;
-                padding: 16px;
-                left: -10px;
-            }
         }
 
         /* 다크모드 대응 */
@@ -1289,6 +1175,22 @@
                                 </span>
                             </div>
                         </div>
+                        
+                        <!-- 통계 정보 추가 -->
+                        <div class="timeline-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">총 노드:</span>
+                                <span class="stat-value" id="totalNodes">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">연결:</span>
+                                <span class="stat-value" id="totalLinks">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">표시된 노드:</span>
+                                <span class="stat-value" id="visibleNodes">0</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -1337,34 +1239,6 @@
                 
                 <!-- 범례는 노드타입 하단으로 이동됨 -->
                 
-                <!-- 플로팅 미니 스탯 + 호버 통계 -->
-            <div class="floating-stats" id="floatingStats">
-                <div class="stats-icon" id="statsIcon">
-                    📊
-                </div>
-                <div class="stats-tooltip" id="statsTooltip">
-                    <div class="tooltip-header">EAN 네트워크 통계</div>
-                    <div class="stat-row">
-                        <span class="stat-label">총 노드:</span>
-                        <span class="stat-value" id="totalNodes">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">연결:</span>
-                        <span class="stat-value" id="totalLinks">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">표시된 노드:</span>
-                        <span class="stat-value" id="visibleNodes">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">연도 범위:</span>
-                        <span class="stat-value" id="yearRange">-</span>
-                    </div>
-                    <div class="tooltip-footer">
-                        <small>실시간 업데이트</small>
-                    </div>
-                </div>
-            </div>
             </div>
             
             <!-- 줌 컨트롤은 검색 입력창 옆으로 이동됨 -->
@@ -1576,9 +1450,6 @@
             
             // 디스플레이 업데이트
             updateTimelineDisplay();
-            
-            // 통계 업데이트
-            document.getElementById('yearRange').textContent = `${minYear} - ${maxYear}`;
         }
         
         function renderTimelineRuler(minYear, maxYear) {
@@ -1707,29 +1578,29 @@
             let forceStrength, distanceMax, alphaDecay;
             
             if (smartPerformanceMode) {
-                forceStrength = -300;
-                distanceMax = 400;
-                alphaDecay = 0.06;
+                forceStrength = -400;
+                distanceMax = 500;
+                alphaDecay = 0.05;
             } else if (performanceMode) {
-                forceStrength = -500;
-                distanceMax = 600;
-                alphaDecay = 0.04;
+                forceStrength = -700;
+                distanceMax = 800;
+                alphaDecay = 0.03;
             } else {
-                forceStrength = -600;
+                forceStrength = -900;
                 distanceMax = null;
-                alphaDecay = 0.02;
+                alphaDecay = 0.015;
             }
             
             simulation = d3.forceSimulation(nodes)
-                .force('link', d3.forceLink(links).id(d => d.id).distance(120))
+                .force('link', d3.forceLink(links).id(d => d.id).distance(180))
                 .force('charge', d3.forceManyBody().strength(forceStrength).distanceMax(distanceMax))
                 .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(d => getNodeSize(d) + 12).strength(0.8))
-                .force('x', d3.forceX(width / 2).strength(0.05))
-                .force('y', d3.forceY(height / 2).strength(0.05))
+                .force('collision', d3.forceCollide().radius(d => getNodeSize(d) + 20).strength(0.9))
+                .force('x', d3.forceX(width / 2).strength(0.03))
+                .force('y', d3.forceY(height / 2).strength(0.03))
                 .alphaDecay(alphaDecay)
                 .alphaMin(0.001)
-                .velocityDecay(0.3);
+                .velocityDecay(0.25);
 
             renderGraph();
             document.getElementById('loading').style.display = 'none';
@@ -1770,7 +1641,6 @@
                 .attr('class', 'node')
                 .attr('r', d => getNodeSize(d))
                 .attr('fill', d => colors[d.type])
-                .attr('stroke', d => d3.color(colors[d.type]).darker())
                 .style('cursor', 'pointer')
                 .call(d3.drag()
                     .on('start', dragstarted)
@@ -2196,33 +2066,6 @@
                 dragTarget = null;
             });
             
-            // 플로팅 스탯 호버 이벤트
-            const statsIcon = document.getElementById('statsIcon');
-            const statsTooltip = document.getElementById('statsTooltip');
-            let hoverTimeout;
-            
-            if (statsIcon && statsTooltip) {
-                statsIcon.addEventListener('mouseenter', () => {
-                    clearTimeout(hoverTimeout);
-                    statsTooltip.classList.add('visible');
-                });
-                
-                statsIcon.addEventListener('mouseleave', () => {
-                    hoverTimeout = setTimeout(() => {
-                        if (!statsTooltip.matches(':hover')) {
-                            statsTooltip.classList.remove('visible');
-                        }
-                    }, 300);
-                });
-                
-                statsTooltip.addEventListener('mouseenter', () => {
-                    clearTimeout(hoverTimeout);
-                });
-                
-                statsTooltip.addEventListener('mouseleave', () => {
-                    statsTooltip.classList.remove('visible');
-                });
-            }
 
             // 노드 타입 필터 (수정됨 - 발주처 제거)
             document.getElementById('nodeTypeFilters').addEventListener('click', (e) => {
