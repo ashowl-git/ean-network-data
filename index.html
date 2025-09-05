@@ -1570,37 +1570,38 @@
             svg.call(zoom);
             g = svg.append('g');
 
-            // 시뮬레이션 설정 (개선된 균형)
+            // 시뮬레이션 설정 (시각성 우선)
             const nodeCount = nodes.length;
-            smartPerformanceMode = nodeCount > 1000;
-            performanceMode = nodeCount > 500;
+            smartPerformanceMode = nodeCount > 2000; // 임계값 증가
+            performanceMode = nodeCount > 1000; // 임계값 증가
             
             let forceStrength, distanceMax, alphaDecay;
             
+            // 우주의 별들처럼 넓게 분산된 네트워크
             if (smartPerformanceMode) {
                 forceStrength = -400;
                 distanceMax = 500;
-                alphaDecay = 0.05;
+                alphaDecay = 0.04;
             } else if (performanceMode) {
-                forceStrength = -700;
-                distanceMax = 800;
+                forceStrength = -600;
+                distanceMax = 700;
                 alphaDecay = 0.03;
             } else {
-                forceStrength = -900;
+                forceStrength = -800;
                 distanceMax = null;
-                alphaDecay = 0.015;
+                alphaDecay = 0.02;
             }
             
             simulation = d3.forceSimulation(nodes)
-                .force('link', d3.forceLink(links).id(d => d.id).distance(180))
+                .force('link', d3.forceLink(links).id(d => d.id).distance(150))
                 .force('charge', d3.forceManyBody().strength(forceStrength).distanceMax(distanceMax))
                 .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(d => getNodeSize(d) + 20).strength(0.9))
-                .force('x', d3.forceX(width / 2).strength(0.03))
-                .force('y', d3.forceY(height / 2).strength(0.03))
+                .force('collision', d3.forceCollide().radius(d => getNodeSize(d) + 15).strength(0.8))
+                .force('x', d3.forceX(width / 2).strength(0.01))
+                .force('y', d3.forceY(height / 2).strength(0.01))
                 .alphaDecay(alphaDecay)
                 .alphaMin(0.001)
-                .velocityDecay(0.25);
+                .velocityDecay(0.4);
 
             renderGraph();
             document.getElementById('loading').style.display = 'none';
@@ -1611,10 +1612,10 @@
             // 기존 요소 제거
             g.selectAll('*').remove();
 
-            // 성능 모드 체크
+            // 성능 모드 체크 (시각성 우선)
             const nodeCount = nodes.length;
-            smartPerformanceMode = nodeCount > 1000;
-            performanceMode = nodeCount > 500;
+            smartPerformanceMode = nodeCount > 2000;
+            performanceMode = nodeCount > 1000;
             
             // 링크 그리기 (개선된 시각 효과)
             const link = g.append('g')
@@ -1631,7 +1632,7 @@
                         return Math.min(Math.sqrt(d.weight) * 1.3 + 1.5, 6);
                     }
                 })
-                .style('display', smartPerformanceMode && currentScale < 0.3 ? 'none' : null);
+                .style('display', smartPerformanceMode && currentScale < 0.1 ? 'none' : null);
 
             // 노드 그리기 (성능 최적화)
             const node = g.append('g')
@@ -1647,14 +1648,14 @@
                     .on('drag', dragged)
                     .on('end', dragended));
 
-            // 라벨 추가 (개선된 렌더링)
+            // 라벨 추가 (시각성 우선)
             const label = g.append('g')
                 .selectAll('text')
                 .data(nodes.filter(d => {
                     if (smartPerformanceMode) {
-                        return d.type === 'service' || d.connections > 5;
+                        return d.type === 'service' || d.connections > 3;
                     } else if (performanceMode) {
-                        return d.type === 'service' || d.connections > 2;
+                        return d.type === 'service' || d.connections > 1;
                     } else {
                         return true;
                     }
@@ -1663,10 +1664,10 @@
                 .attr('class', 'node-label')
                 .attr('dy', d => getNodeSize(d) + 18)
                 .text(d => {
-                    const maxLength = smartPerformanceMode ? 12 : (performanceMode ? 18 : 25);
+                    const maxLength = smartPerformanceMode ? 15 : (performanceMode ? 20 : 25);
                     return truncateText(d.id, maxLength);
                 })
-                .style('display', smartPerformanceMode ? 'none' : null);
+                .style('display', smartPerformanceMode && currentScale < 0.2 ? 'none' : null);
 
             // 이벤트 리스너
             node
@@ -1863,7 +1864,7 @@
             }
         }
 
-        // 노드 가시성 업데이트 (개선된 LOD)
+        // 노드 가시성 업데이트 (시각성 우선)
         function updateNodeVisibility() {
             if (!g) return;
 
@@ -1871,50 +1872,46 @@
             const linkSelection = g.selectAll('.link');
             const labelSelection = g.selectAll('.node-label');
 
-            // 지능형 거리별 레벨 오브 디테일
-            if (smartPerformanceMode && currentScale < 0.2) {
-                // 극대 데이터 모드: 최소한만 표시
-                nodeSelection.style('display', d => d.connections > 8 ? null : 'none');
-                linkSelection.style('display', 'none');
-                labelSelection.style('display', 'none');
-            } else if (currentScale < 0.3) {
-                // 극도 축소: 중요 노드만 (전보다 완화)
-                nodeSelection.style('display', d => d.connections > 4 ? null : 'none');
+            // 대부분의 경우 모든 노드 표시
+            if (smartPerformanceMode && currentScale < 0.1) {
+                // 극도로 축소된 경우에만 일부 제한
+                nodeSelection.style('display', d => d.connections > 5 ? null : 'none');
                 linkSelection.style('display', d => d.weight > 2 ? null : 'none');
                 labelSelection.style('display', 'none');
-            } else if (currentScale < 0.6) {
-                // 축소: 더 많은 요소 표시
-                nodeSelection.style('display', d => d.connections > 1 ? null : 'none');
+            } else if (currentScale < 0.2) {
+                // 많이 축소: 중요 노드 위주
+                nodeSelection.style('display', d => d.connections > 2 ? null : 'none');
                 linkSelection.style('display', d => d.weight > 1 ? null : 'none');
                 labelSelection.style('display', 'none');
             } else {
-                // 일반: 모든 요소 표시
+                // 일반적인 경우: 모든 요소 표시
                 nodeSelection.style('display', null);
                 linkSelection.style('display', null);
                 updateLabelsVisibility();
             }
         }
 
-        // 확대 시 라벨 표시 (개선된 균형)
+        // 라벨 표시 (시각성 우선)
         function updateLabelsVisibility() {
-            // 극대 데이터에서만 엄격한 제한
-            if (smartPerformanceMode && currentScale < 0.8) {
-                g.selectAll('.node-label').classed('visible', false);
+            // 극대 데이터에서도 라벨 표시 완화
+            if (smartPerformanceMode && currentScale < 0.4) {
+                g.selectAll('.node-label')
+                    .classed('visible', d => d.type === 'service' && d.connections > 2);
                 return;
             }
             
-            // 성능 모드에서 완화된 제한
-            if (performanceMode && currentScale < 0.7) {
+            // 성능 모드에서도 더 많은 라벨 표시
+            if (performanceMode && currentScale < 0.5) {
                 g.selectAll('.node-label')
-                    .classed('visible', d => d.type === 'service' && d.connections > 3);
+                    .classed('visible', d => d.type === 'service' || d.connections > 1);
                 return;
             }
 
-            // 일반적인 라벨 표시 로직
-            const showLabels = currentScale > 1.2; // 전보다 낮은 임계값
+            // 일반적인 라벨 표시 - 더 관대한 기준
+            const showLabels = currentScale > 0.8;
             g.selectAll('.node-label')
                 .classed('visible', function(d) {
-                    return showLabels || (d.type === 'service' && currentScale > 0.6);
+                    return showLabels || (currentScale > 0.4);
                 });
         }
 
@@ -2088,8 +2085,7 @@
             });
 
             document.getElementById('resetZoom').addEventListener('click', () => {
-                performanceMode = false;
-                smartPerformanceMode = false; // 모든 성능 모드 해제
+                // 성능 모드는 노드 수에 따라 자동 결정되도록 유지
                 svg.transition().duration(800).call(zoom.transform, d3.zoomIdentity);
                 setTimeout(() => updateNodeVisibility(), 1000);
             });
