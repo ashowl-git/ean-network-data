@@ -808,11 +808,13 @@
             document.getElementById('clearSelection').classList.remove('visible');
         }
 
-        // 확대 시 라벨 표시
+        // 확대 시 라벨 표시 (수행용역은 항상 표시)
         function updateLabelsVisibility() {
             const showLabels = currentScale > 1.5;
             g.selectAll('.node-label')
-                .classed('visible', showLabels);
+                .classed('visible', function(d) {
+                    return showLabels || d.type === 'service';
+                });
         }
 
         // 텍스트 자르기
