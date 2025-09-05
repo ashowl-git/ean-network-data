@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>EAN 계약 네트워크 - 개선된 시각화</title>
+    <title>EAN 계약 네트워크</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         * {
@@ -16,10 +16,11 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f8fafc;
-            color: #1e293b;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #fafafa;
+            color: #333333;
             overflow: hidden;
+            line-height: 1.4;
         }
 
         .container {
@@ -27,44 +28,32 @@
             height: 100vh;
         }
 
-        .sidebar {
-            width: 380px;
-            background: #ffffff;
-            border-right: 1px solid #e2e8f0;
-            padding: 20px;
-            overflow-y: auto;
-            z-index: 1000;
-            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-        }
-
         .graph-container {
             flex: 1;
             position: relative;
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-        }
-
-        .control-panel {
-            margin-bottom: 20px;
+            background: #fafafa;
         }
 
         .control-group {
-            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .control-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .search-input {
             width: 100%;
             padding: 10px 14px;
-            background: #f9fafb;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 6px;
             color: #374151;
             font-size: 14px;
             transition: all 0.2s;
@@ -72,23 +61,21 @@
 
         .search-input:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            background: #ffffff;
+            border-color: #333333;
+            background: rgba(255, 255, 255, 1);
         }
 
         .filter-buttons {
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
-            margin-top: 10px;
         }
 
         .filter-btn {
             padding: 6px 12px;
-            background: #f3f4f6;
-            border: 1px solid #d1d5db;
-            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 4px;
             color: #374151;
             font-size: 12px;
             cursor: pointer;
@@ -97,31 +84,16 @@
         }
 
         .filter-btn:hover {
-            background: #e5e7eb;
-            border-color: #9ca3af;
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-1px);
         }
 
         .filter-btn.active {
-            background: #3b82f6;
-            border-color: #3b82f6;
+            background: #333333;
+            border-color: #333333;
             color: #ffffff;
         }
 
-        .stats {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 16px;
-            margin-top: 20px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .stats h3 {
-            font-size: 15px;
-            margin-bottom: 12px;
-            color: #111827;
-            font-weight: 600;
-        }
 
         .stat-item {
             display: flex;
@@ -136,21 +108,6 @@
             color: #3b82f6;
         }
 
-        .legend {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 16px;
-            margin-top: 15px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .legend h3 {
-            font-size: 15px;
-            margin-bottom: 12px;
-            color: #111827;
-            font-weight: 600;
-        }
 
         .legend-item {
             display: flex;
@@ -175,17 +132,17 @@
             transform: translate(-50%, -50%);
             text-align: center;
             z-index: 100;
-            color: #6b7280;
+            color: #999999;
         }
 
         .spinner {
-            border: 3px solid #e5e7eb;
-            border-top: 3px solid #3b82f6;
+            border: 2px solid #e0e0e0;
+            border-top: 2px solid #333333;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            margin: 0 auto 16px;
         }
 
         @keyframes spin {
@@ -287,7 +244,7 @@
 
         .zoom-controls {
             position: absolute;
-            top: 20px;
+            bottom: 20px;
             right: 20px;
             display: flex;
             flex-direction: column;
@@ -298,8 +255,9 @@
         .zoom-btn {
             width: 44px;
             height: 44px;
-            background: #ffffff;
-            border: 1px solid #d1d5db;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
             color: #374151;
             cursor: pointer;
@@ -309,30 +267,30 @@
             font-size: 18px;
             font-weight: 600;
             transition: all 0.2s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
         }
 
         .zoom-btn:hover {
-            background: #f3f4f6;
-            border-color: #9ca3af;
+            background: rgba(255, 255, 255, 0.95);
             transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
         }
 
         .clear-selection {
             position: absolute;
             bottom: 20px;
-            right: 20px;
+            left: 20px;
             padding: 10px 16px;
-            background: #ef4444;
+            background: rgba(239, 68, 68, 0.9);
+            backdrop-filter: blur(16px);
             color: #ffffff;
-            border: none;
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
             opacity: 0;
             pointer-events: none;
         }
@@ -348,20 +306,64 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
-        /* 수행용역 브라우저 스타일 */
-        .service-browser {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
+        /* 플로팅 컨트롤 패널 */
+        .floating-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
             padding: 16px;
-            margin-top: 15px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            max-height: 400px;
-            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 280px;
+            transition: all 0.3s ease;
         }
 
-        .service-browser h3 {
-            font-size: 15px;
+        .floating-controls:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        /* 플로팅 오버레이 카드 */
+        .overlay-cards {
+            position: absolute;
+            top: 20px;
+            right: 80px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        .overlay-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            pointer-events: all;
+            width: 300px;
+            transition: all 0.3s ease;
+        }
+
+        .overlay-card:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .overlay-card h3 {
+            font-size: 14px;
             margin-bottom: 12px;
             color: #111827;
             font-weight: 600;
@@ -372,17 +374,17 @@
 
         .service-controls {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             margin-bottom: 12px;
         }
 
         .service-control-btn {
-            padding: 4px 8px;
-            background: #f3f4f6;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
+            padding: 6px 10px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
             color: #374151;
-            font-size: 11px;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
             font-weight: 500;
@@ -394,13 +396,13 @@
         }
 
         .service-control-btn.active {
-            background: #3b82f6;
-            border-color: #3b82f6;
+            background: #333333;
+            border-color: #333333;
             color: #ffffff;
         }
 
         .service-list {
-            max-height: 300px;
+            max-height: 240px;
             overflow-y: auto;
         }
 
@@ -461,9 +463,9 @@
         .service-search {
             width: 100%;
             padding: 8px 12px;
-            background: #f9fafb;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 4px;
             color: #374151;
             font-size: 12px;
             margin-bottom: 10px;
@@ -472,9 +474,8 @@
 
         .service-search:focus {
             outline: none;
-            border-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-            background: #ffffff;
+            border-color: #333333;
+            background: rgba(255, 255, 255, 1);
         }
 
         /* 반응형 디자인 */
@@ -521,20 +522,27 @@
 </head>
 <body>
     <div class="container">
-        <div class="sidebar">
-            <div class="control-panel">
+        
+        <div class="graph-container">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div>데이터를 불러오는 중...</div>
+            </div>
+            
+            <!-- 플로팅 컨트롤 패널 -->
+            <div class="floating-controls">
                 <div class="control-group">
-                    <label>🔍 검색</label>
+                    <label>검색</label>
                     <input type="text" class="search-input" id="searchInput" placeholder="계약명, 수행용역 검색...">
                 </div>
                 
                 <div class="control-group">
-                    <label>📅 연도 필터</label>
+                    <label>연도 필터</label>
                     <div class="filter-buttons" id="yearFilters"></div>
                 </div>
                 
                 <div class="control-group">
-                    <label>🏢 노드 타입</label>
+                    <label>노드 타입</label>
                     <div class="filter-buttons" id="nodeTypeFilters">
                         <button class="filter-btn active" data-type="all">전체</button>
                         <button class="filter-btn" data-type="contract-only">계약명만</button>
@@ -543,62 +551,58 @@
                 </div>
             </div>
             
-            <div class="service-browser">
-                <h3>
-                    🎯 수행용역 브라우저
-                    <span id="selectedServiceCount" style="font-size: 12px; color: #6b7280;">0/43</span>
-                </h3>
-                
-                <input type="text" class="service-search" id="serviceSearch" placeholder="수행용역 검색...">
-                
-                <div class="service-controls">
-                    <button class="service-control-btn" id="selectAllServices">모두 선택</button>
-                    <button class="service-control-btn" id="clearAllServices">모두 해제</button>
-                    <button class="service-control-btn" id="showSelectedOnly">선택만 보기</button>
+            <!-- 플로팅 오버레이 카드들 -->
+            <div class="overlay-cards">
+                <div class="overlay-card">
+                    <h3>
+                        수행용역
+                        <span id="selectedServiceCount" style="font-size: 12px; color: #6b7280;">0/43</span>
+                    </h3>
+                    
+                    <input type="text" class="service-search" id="serviceSearch" placeholder="수행용역 검색...">
+                    
+                    <div class="service-controls">
+                        <button class="service-control-btn" id="selectAllServices">모두 선택</button>
+                        <button class="service-control-btn" id="clearAllServices">모두 해제</button>
+                        <button class="service-control-btn" id="showSelectedOnly">선택만 보기</button>
+                    </div>
+                    
+                    <div class="service-list" id="serviceList">
+                        <!-- 수행용역 리스트가 여기에 동적으로 생성됩니다 -->
+                    </div>
                 </div>
                 
-                <div class="service-list" id="serviceList">
-                    <!-- 수행용역 리스트가 여기에 동적으로 생성됩니다 -->
+                <div class="overlay-card">
+                    <h3>범례</h3>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3b82f6;"></div>
+                        <span>계약명</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #10b981;"></div>
+                        <span>수행용역</span>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="legend">
-                <h3>🎨 노드 범례</h3>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #3b82f6;"></div>
-                    <span>계약명</span>
+                
+                <div class="overlay-card">
+                    <h3>통계</h3>
+                    <div class="stat-item">
+                        <span>총 노드:</span>
+                        <span class="stat-value" id="totalNodes">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>연결:</span>
+                        <span class="stat-value" id="totalLinks">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>표시된 노드:</span>
+                        <span class="stat-value" id="visibleNodes">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>연도 범위:</span>
+                        <span class="stat-value" id="yearRange">-</span>
+                    </div>
                 </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #10b981;"></div>
-                    <span>수행용역</span>
-                </div>
-            </div>
-            
-            <div class="stats">
-                <h3>📊 통계</h3>
-                <div class="stat-item">
-                    <span>총 노드:</span>
-                    <span class="stat-value" id="totalNodes">0</span>
-                </div>
-                <div class="stat-item">
-                    <span>연결:</span>
-                    <span class="stat-value" id="totalLinks">0</span>
-                </div>
-                <div class="stat-item">
-                    <span>표시된 노드:</span>
-                    <span class="stat-value" id="visibleNodes">0</span>
-                </div>
-                <div class="stat-item">
-                    <span>연도 범위:</span>
-                    <span class="stat-value" id="yearRange">-</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="graph-container">
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <div>데이터를 불러오는 중...</div>
             </div>
             
             <div class="zoom-controls">
@@ -607,7 +611,7 @@
                 <button class="zoom-btn" id="resetZoom">⌂</button>
             </div>
             
-            <button class="clear-selection" id="clearSelection">모든 선택 해제</button>
+            <button class="clear-selection" id="clearSelection">선택 해제</button>
             
             <svg id="graph"></svg>
             <div class="tooltip" id="tooltip"></div>
