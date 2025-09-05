@@ -223,22 +223,99 @@
             transform: translate(-50%, -50%);
             text-align: center;
             z-index: 100;
-            color: #999999;
+            color: #2d5016;
+            max-width: 500px;
+            padding: 0 20px;
         }
 
-        .spinner {
-            border: 2px solid #e0e0e0;
-            border-top: 2px solid #333333;
+        .loading-text {
+            margin-top: 24px;
+            line-height: 1.6;
+        }
+
+        .en-text {
+            font-size: 18px;
+            font-weight: 500;
+            color: #2d5016;
+            margin-bottom: 12px;
+        }
+
+        .ko-text {
+            font-size: 16px;
+            font-weight: 400;
+            color: #4a7c23;
+        }
+
+        .eco-spinner {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto;
+            position: relative;
+            animation: eco-pulse 2s ease-in-out infinite;
+        }
+
+        .eco-spinner::before {
+            content: '🌱';
+            font-size: 32px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: eco-rotate 3s linear infinite;
+        }
+
+        .eco-spinner::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid transparent;
+            border-top: 2px solid #10b981;
+            border-right: 2px solid #34d399;
             border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
+            animation: eco-spin 1.5s linear infinite;
         }
 
-        @keyframes spin {
+        @keyframes eco-spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        @keyframes eco-rotate {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+            25% { transform: translate(-50%, -50%) rotate(90deg) scale(1.1); }
+            50% { transform: translate(-50%, -50%) rotate(180deg) scale(1); }
+            75% { transform: translate(-50%, -50%) rotate(270deg) scale(1.1); }
+        }
+
+        @keyframes eco-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        @media (max-width: 768px) {
+            .loading {
+                max-width: calc(100vw - 40px);
+            }
+            
+            .en-text {
+                font-size: 16px;
+            }
+            
+            .ko-text {
+                font-size: 14px;
+            }
+            
+            .eco-spinner {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .eco-spinner::before {
+                font-size: 28px;
+            }
         }
 
         .node {
@@ -424,32 +501,33 @@
 
         /* 플로팅 오버레이 카드 */
         .overlay-cards {
-            position: absolute;
+            position: fixed;
             top: 20px;
-            right: 80px;
+            right: 20px;
             z-index: 100;
             display: flex;
             flex-direction: column;
             gap: 12px;
             pointer-events: none;
+            transition: all 0.3s ease;
         }
 
         .overlay-card {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 8px;
             padding: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
             pointer-events: all;
             width: 300px;
             transition: all 0.3s ease;
         }
 
         .overlay-card:hover {
-            background: rgba(255, 255, 255, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
             transform: translateY(-1px);
         }
 
@@ -570,6 +648,37 @@
         }
 
         /* 반응형 디자인 */
+        @media (max-width: 1200px) {
+            .overlay-cards {
+                right: 10px;
+            }
+            
+            .overlay-card {
+                width: 280px;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .overlay-cards {
+                position: fixed;
+                top: auto;
+                bottom: 80px;
+                right: 10px;
+                flex-direction: row;
+                flex-wrap: wrap;
+                max-width: calc(100vw - 20px);
+            }
+            
+            .overlay-card {
+                width: 250px;
+                max-width: calc(50vw - 15px);
+            }
+            
+            .floating-controls {
+                width: 250px;
+            }
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
@@ -593,6 +702,28 @@
             .service-browser {
                 max-height: 150px;
             }
+            
+            .overlay-cards {
+                position: fixed;
+                top: auto;
+                bottom: 20px;
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+                flex-direction: column;
+                align-items: center;
+                max-width: calc(100vw - 40px);
+            }
+            
+            .overlay-card {
+                width: 100%;
+                max-width: 320px;
+            }
+            
+            .floating-controls {
+                width: calc(100vw - 40px);
+                max-width: 320px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -608,6 +739,18 @@
             .control-group {
                 margin-bottom: 12px;
             }
+            
+            .overlay-card {
+                padding: 12px;
+                width: 100%;
+                max-width: 280px;
+            }
+            
+            .floating-controls {
+                padding: 12px;
+                width: calc(100vw - 24px);
+                max-width: 280px;
+            }
         }
     </style>
 </head>
@@ -616,8 +759,11 @@
         
         <div class="graph-container">
             <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <div>데이터를 불러오는 중...</div>
+                <div class="eco-spinner"></div>
+                <div class="loading-text">
+                    <div class="en-text">Your sustainable journey with EAN is almost ready — thank you for your patience.</div>
+                    <div class="ko-text">EAN과 함께하는 지속가능의 여정이 곧 시작됩니다 — 잠시만 기다려 주세요.</div>
+                </div>
             </div>
             
             <!-- 플로팅 컨트롤 패널 -->
