@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EAN 계약 네트워크 - 옵시디언 스타일</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>EAN 계약 네트워크 - 개선된 시각화</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         * {
@@ -14,8 +17,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0d1117;
-            color: #c9d1d9;
+            background: #f8fafc;
+            color: #1e293b;
             overflow: hidden;
         }
 
@@ -25,18 +28,19 @@
         }
 
         .sidebar {
-            width: 300px;
-            background: #161b22;
-            border-right: 1px solid #30363d;
+            width: 320px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
             padding: 20px;
             overflow-y: auto;
             z-index: 1000;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
         }
 
         .graph-container {
             flex: 1;
             position: relative;
-            background: radial-gradient(circle at 50% 50%, #0d1117 0%, #010409 100%);
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
         }
 
         .control-panel {
@@ -49,80 +53,119 @@
 
         .control-group label {
             display: block;
-            margin-bottom: 5px;
-            font-size: 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
             font-weight: 600;
-            color: #f0f6fc;
+            color: #374151;
         }
 
         .search-input {
             width: 100%;
-            padding: 8px 12px;
-            background: #21262d;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            color: #c9d1d9;
+            padding: 10px 14px;
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            color: #374151;
             font-size: 14px;
+            transition: all 0.2s;
         }
 
         .search-input:focus {
             outline: none;
-            border-color: #58a6ff;
-            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: #ffffff;
         }
 
         .filter-buttons {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
+            gap: 6px;
             margin-top: 10px;
         }
 
         .filter-btn {
-            padding: 4px 8px;
-            background: #21262d;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            color: #c9d1d9;
-            font-size: 11px;
+            padding: 6px 12px;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 16px;
+            color: #374151;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            font-weight: 500;
         }
 
         .filter-btn:hover {
-            background: #30363d;
+            background: #e5e7eb;
+            border-color: #9ca3af;
         }
 
         .filter-btn.active {
-            background: #238636;
-            border-color: #238636;
+            background: #3b82f6;
+            border-color: #3b82f6;
             color: #ffffff;
         }
 
         .stats {
-            background: #21262d;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 15px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
             margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .stats h3 {
-            font-size: 14px;
-            margin-bottom: 10px;
-            color: #f0f6fc;
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: #111827;
+            font-weight: 600;
         }
 
         .stat-item {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             margin-bottom: 8px;
-            font-size: 12px;
+            font-size: 13px;
         }
 
         .stat-value {
             font-weight: 600;
-            color: #58a6ff;
+            color: #3b82f6;
+        }
+
+        .legend {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend h3 {
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: #111827;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
         }
 
         .loading {
@@ -132,11 +175,12 @@
             transform: translate(-50%, -50%);
             text-align: center;
             z-index: 100;
+            color: #6b7280;
         }
 
         .spinner {
-            border: 3px solid #30363d;
-            border-top: 3px solid #58a6ff;
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #3b82f6;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -151,51 +195,80 @@
 
         .node {
             cursor: pointer;
-            stroke-width: 1.5px;
+            stroke-width: 2px;
             transition: all 0.3s ease;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
         }
 
         .node:hover {
-            stroke-width: 3px;
+            stroke-width: 4px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .node.blurred {
+            opacity: 0.2;
+            filter: blur(1px);
+        }
+
+        .node.highlighted {
+            opacity: 1;
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
         }
 
         .link {
-            stroke: #30363d;
+            stroke: #cbd5e1;
             stroke-opacity: 0.6;
             stroke-width: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .link.blurred {
+            opacity: 0.1;
+        }
+
+        .link.highlighted {
+            stroke: #3b82f6;
+            stroke-opacity: 0.8;
+            stroke-width: 2px;
         }
 
         .node-label {
-            font-size: 10px;
-            fill: #c9d1d9;
+            font-size: 11px;
+            fill: #374151;
             text-anchor: middle;
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.3s ease;
+            font-weight: 500;
         }
 
-        .node:hover + .node-label,
         .node-label.visible {
             opacity: 1;
         }
 
         .tooltip {
             position: absolute;
-            background: rgba(33, 38, 45, 0.95);
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 10px;
-            font-size: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
             pointer-events: none;
             z-index: 1000;
             opacity: 0;
             transition: opacity 0.2s;
             max-width: 300px;
-            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            color: #374151;
         }
 
         .tooltip.visible {
             opacity: 1;
+        }
+
+        .tooltip strong {
+            color: #111827;
+            font-weight: 600;
         }
 
         .zoom-controls {
@@ -204,27 +277,61 @@
             right: 20px;
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 6px;
             z-index: 100;
         }
 
         .zoom-btn {
-            width: 40px;
-            height: 40px;
-            background: #21262d;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            color: #c9d1d9;
+            width: 44px;
+            height: 44px;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            color: #374151;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 18px;
+            font-weight: 600;
             transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .zoom-btn:hover {
-            background: #30363d;
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .clear-selection {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 16px;
+            background: #ef4444;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .clear-selection.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .clear-selection:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
         /* 반응형 디자인 */
@@ -251,16 +358,16 @@
 
         @media (max-width: 480px) {
             .sidebar {
-                height: 150px;
-                padding: 10px;
+                height: 160px;
+                padding: 12px;
             }
             
             .graph-container {
-                height: calc(100vh - 150px);
+                height: calc(100vh - 160px);
             }
             
             .control-group {
-                margin-bottom: 10px;
+                margin-bottom: 12px;
             }
         }
     </style>
@@ -271,7 +378,7 @@
             <div class="control-panel">
                 <div class="control-group">
                     <label>🔍 검색</label>
-                    <input type="text" class="search-input" id="searchInput" placeholder="계약명, 발주처, 용역 검색...">
+                    <input type="text" class="search-input" id="searchInput" placeholder="계약명, 수행용역 검색...">
                 </div>
                 
                 <div class="control-group">
@@ -283,10 +390,21 @@
                     <label>🏢 노드 타입</label>
                     <div class="filter-buttons" id="nodeTypeFilters">
                         <button class="filter-btn active" data-type="all">전체</button>
-                        <button class="filter-btn" data-type="contract-client">계약명 + 발주처</button>
-                        <button class="filter-btn" data-type="contract-service">계약명 + 수행용역</button>
-                        <button class="filter-btn" data-type="client-service">발주처 + 수행용역</button>
+                        <button class="filter-btn" data-type="contract-only">계약명만</button>
+                        <button class="filter-btn" data-type="service-only">수행용역만</button>
                     </div>
+                </div>
+            </div>
+            
+            <div class="legend">
+                <h3>🎨 노드 범례</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3b82f6;"></div>
+                    <span>계약명</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #10b981;"></div>
+                    <span>수행용역</span>
                 </div>
             </div>
             
@@ -323,6 +441,8 @@
                 <button class="zoom-btn" id="resetZoom">⌂</button>
             </div>
             
+            <button class="clear-selection" id="clearSelection">선택 해제</button>
+            
             <svg id="graph"></svg>
             <div class="tooltip" id="tooltip"></div>
         </div>
@@ -338,13 +458,13 @@
         let svg, g;
         let width, height;
         let zoom;
+        let selectedNode = null;
+        let currentScale = 1;
 
-        // 색상 스키마 (옵시디언 스타일)
+        // 색상 스키마 (눈의 피로 감소를 위한 부드러운 색상)
         const colors = {
-            contract: '#58a6ff',    // 파란색 - 계약명
-            client: '#f85149',      // 빨간색 - 발주처  
-            service: '#7c3aed',     // 보라색 - 수행용역
-            year: '#f9826c'         // 오렌지색 - 연도
+            contract: '#3b82f6',    // 파란색 - 계약명
+            service: '#10b981'      // 초록색 - 수행용역
         };
 
         // 초기화
@@ -357,15 +477,53 @@
             } catch (error) {
                 console.error('초기화 오류:', error);
                 document.getElementById('loading').innerHTML = `
-                    <div style="color: #f85149;">❌ 데이터 로딩 실패</div>
+                    <div style="color: #ef4444;">❌ 데이터 로딩 실패</div>
                     <div style="font-size: 12px; margin-top: 10px;">CSV 파일을 확인해주세요.</div>
                 `;
             }
         });
 
-        // CSV 데이터 로드
+        // 최적화된 데이터 로드 (JSON 우선, CSV 폴백)
         async function loadData() {
-            const response = await fetch('202508_EAN계약현황_그래프용.csv');
+            try {
+                // JSON 파일 로드 시도
+                console.log('JSON 데이터 로드 중...');
+                const startTime = performance.now();
+                
+                const response = await fetch('data.json');
+                const jsonData = await response.json();
+                
+                console.log(`JSON 로드 완료: ${jsonData.records.length.toLocaleString()}개 레코드`);
+                
+                // 인덱스를 실제 값으로 변환
+                allData = jsonData.records.map(record => ({
+                    year: jsonData.lookup.years[record[0]],
+                    contract: jsonData.lookup.contracts[record[1]], 
+                    service: jsonData.lookup.services[record[2]]
+                }));
+                
+                const endTime = performance.now();
+                console.log(`JSON 파싱 완료: ${allData.length.toLocaleString()}개 항목 (${(endTime - startTime).toFixed(1)}ms)`);
+                
+            } catch (error) {
+                console.warn('JSON 로드 실패, CSV로 폴백:', error);
+                // CSV 폴백
+                await loadDataCSV();
+            }
+
+            filteredData = [...allData];
+            createNetworkData();
+            
+            // 연도 필터는 초기 로드 시에만 생성
+            createYearFilters();
+        }
+
+        // CSV 폴백 함수
+        async function loadDataCSV() {
+            console.log('CSV 데이터 로드 중...');
+            const startTime = performance.now();
+            
+            const response = await fetch('202508_EAN계약현황_완전본.csv');
             const text = await response.text();
             
             // CSV 파싱
@@ -377,16 +535,12 @@
                 return {
                     year: values[0]?.trim() || '',
                     contract: values[1]?.trim() || '',
-                    client: values[2]?.trim() || '',
-                    service: values[3]?.trim() || ''
+                    service: values[2]?.trim() || ''
                 };
-            }).filter(d => d.year && d.contract && d.client && d.service);
+            }).filter(d => d.year && d.contract && d.service);
 
-            filteredData = [...allData];
-            createNetworkData();
-            
-            // 연도 필터는 초기 로드 시에만 생성
-            createYearFilters();
+            const endTime = performance.now();
+            console.log(`CSV 파싱 완료: ${allData.length.toLocaleString()}개 항목 (${(endTime - startTime).toFixed(1)}ms)`);
         }
 
         // CSV 라인 파싱 (따옴표 처리)
@@ -412,7 +566,7 @@
             return result;
         }
 
-        // 네트워크 데이터 생성
+        // 네트워크 데이터 생성 (발주처 제거됨)
         function createNetworkData() {
             const nodeMap = new Map();
             const linkMap = new Map();
@@ -429,15 +583,6 @@
                     });
                 }
 
-                // 발주처 노드
-                if (!nodeMap.has(d.client)) {
-                    nodeMap.set(d.client, {
-                        id: d.client,
-                        type: 'client',
-                        connections: 0
-                    });
-                }
-
                 // 수행용역 노드
                 if (!nodeMap.has(d.service)) {
                     nodeMap.set(d.service, {
@@ -447,27 +592,19 @@
                     });
                 }
 
-                // 링크 생성
-                const links_to_create = [
-                    [d.contract, d.client],
-                    [d.contract, d.service],
-                    [d.client, d.service]
-                ];
-
-                links_to_create.forEach(([source, target]) => {
-                    const linkId = source < target ? `${source}|${target}` : `${target}|${source}`;
-                    if (!linkMap.has(linkId)) {
-                        linkMap.set(linkId, {
-                            source: source,
-                            target: target,
-                            weight: 1
-                        });
-                        nodeMap.get(source).connections++;
-                        nodeMap.get(target).connections++;
-                    } else {
-                        linkMap.get(linkId).weight++;
-                    }
-                });
+                // 링크 생성 (계약명 - 수행용역만)
+                const linkId = d.contract < d.service ? `${d.contract}|${d.service}` : `${d.service}|${d.contract}`;
+                if (!linkMap.has(linkId)) {
+                    linkMap.set(linkId, {
+                        source: d.contract,
+                        target: d.service,
+                        weight: 1
+                    });
+                    nodeMap.get(d.contract).connections++;
+                    nodeMap.get(d.service).connections++;
+                } else {
+                    linkMap.get(linkId).weight++;
+                }
             });
 
             nodes = Array.from(nodeMap.values());
@@ -475,11 +612,13 @@
         }
 
         // 연도 필터 생성
+        let yearFiltersCreated = false;
         function createYearFilters() {
+            if (yearFiltersCreated) return;
+            
             const years = [...new Set(allData.map(d => d.year))].sort();
             const yearFilters = document.getElementById('yearFilters');
             
-            // 기존 버튼들 제거
             yearFilters.innerHTML = '';
             
             // 전체 버튼
@@ -502,6 +641,8 @@
             const minYear = Math.min(...years.map(y => parseInt(y)));
             const maxYear = Math.max(...years.map(y => parseInt(y)));
             document.getElementById('yearRange').textContent = `${minYear} - ${maxYear}`;
+            
+            yearFiltersCreated = true;
         }
 
         // 그래프 초기화
@@ -519,18 +660,20 @@
                 .scaleExtent([0.1, 4])
                 .on('zoom', (event) => {
                     g.attr('transform', event.transform);
+                    currentScale = event.transform.k;
+                    // 확대 시 라벨 표시
+                    updateLabelsVisibility();
                 });
 
             svg.call(zoom);
-
             g = svg.append('g');
 
             // 시뮬레이션 설정
             simulation = d3.forceSimulation(nodes)
-                .force('link', d3.forceLink(links).id(d => d.id).distance(50))
-                .force('charge', d3.forceManyBody().strength(-300))
+                .force('link', d3.forceLink(links).id(d => d.id).distance(80))
+                .force('charge', d3.forceManyBody().strength(-400))
                 .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(d => getNodeSize(d) + 2));
+                .force('collision', d3.forceCollide().radius(d => getNodeSize(d) + 4));
 
             renderGraph();
             document.getElementById('loading').style.display = 'none';
@@ -547,7 +690,7 @@
                 .data(links)
                 .enter().append('line')
                 .attr('class', 'link')
-                .attr('stroke-width', d => Math.sqrt(d.weight));
+                .attr('stroke-width', d => Math.sqrt(d.weight) + 1);
 
             // 노드 그리기
             const node = g.append('g')
@@ -569,22 +712,26 @@
                 .data(nodes)
                 .enter().append('text')
                 .attr('class', 'node-label')
-                .attr('dy', d => getNodeSize(d) + 15)
-                .text(d => truncateText(d.id, 20));
+                .attr('dy', d => getNodeSize(d) + 18)
+                .text(d => truncateText(d.id, 25));
 
             // 이벤트 리스너
             node
                 .on('mouseover', (event, d) => {
                     showTooltip(event, d);
-                    highlightConnections(d);
                 })
                 .on('mouseout', () => {
                     hideTooltip();
-                    resetHighlight();
                 })
                 .on('click', (event, d) => {
-                    focusOnNode(d);
+                    event.stopPropagation();
+                    selectNode(d);
                 });
+
+            // 배경 클릭 시 선택 해제
+            svg.on('click', () => {
+                clearSelection();
+            });
 
             // 시뮬레이션 업데이트
             simulation.nodes(nodes);
@@ -609,11 +756,63 @@
             simulation.alpha(1).restart();
         }
 
-        // 노드 크기 계산
+        // 노드 크기 계산 (연결 수에 따라 크기 조정)
         function getNodeSize(d) {
-            const baseSize = 5;
-            const connectionFactor = Math.sqrt(d.connections) * 2;
-            return Math.max(baseSize, Math.min(baseSize + connectionFactor, 25));
+            const baseSize = 6;
+            const connectionFactor = Math.sqrt(d.connections) * 1.5;
+            return Math.max(baseSize, Math.min(baseSize + connectionFactor, 30));
+        }
+
+        // 노드 선택 및 블러 효과
+        function selectNode(targetNode) {
+            selectedNode = targetNode;
+            
+            // 연결된 노드들 찾기
+            const connectedNodes = new Set([targetNode.id]);
+            const connectedLinks = new Set();
+            
+            links.forEach(link => {
+                if (link.source.id === targetNode.id || link.target.id === targetNode.id) {
+                    connectedNodes.add(link.source.id);
+                    connectedNodes.add(link.target.id);
+                    connectedLinks.add(link);
+                }
+            });
+
+            // 노드 스타일 적용
+            g.selectAll('.node')
+                .classed('blurred', d => !connectedNodes.has(d.id))
+                .classed('highlighted', d => connectedNodes.has(d.id));
+
+            // 링크 스타일 적용
+            g.selectAll('.link')
+                .classed('blurred', d => !connectedLinks.has(d))
+                .classed('highlighted', d => connectedLinks.has(d));
+
+            // 선택 해제 버튼 표시
+            document.getElementById('clearSelection').classList.add('visible');
+        }
+
+        // 선택 해제
+        function clearSelection() {
+            selectedNode = null;
+            
+            g.selectAll('.node')
+                .classed('blurred', false)
+                .classed('highlighted', false);
+
+            g.selectAll('.link')
+                .classed('blurred', false)
+                .classed('highlighted', false);
+
+            document.getElementById('clearSelection').classList.remove('visible');
+        }
+
+        // 확대 시 라벨 표시
+        function updateLabelsVisibility() {
+            const showLabels = currentScale > 1.5;
+            g.selectAll('.node-label')
+                .classed('visible', showLabels);
         }
 
         // 텍스트 자르기
@@ -647,44 +846,9 @@
         function getTypeLabel(type) {
             const labels = {
                 contract: '계약명',
-                client: '발주처',
                 service: '수행용역'
             };
             return labels[type] || type;
-        }
-
-        // 연결 하이라이트
-        function highlightConnections(targetNode) {
-            g.selectAll('.node')
-                .style('opacity', d => {
-                    if (d === targetNode) return 1;
-                    const connected = links.some(link => 
-                        (link.source === d && link.target === targetNode) ||
-                        (link.target === d && link.source === targetNode)
-                    );
-                    return connected ? 1 : 0.1;
-                });
-
-            g.selectAll('.link')
-                .style('opacity', d => 
-                    (d.source === targetNode || d.target === targetNode) ? 0.8 : 0.1
-                );
-        }
-
-        // 하이라이트 리셋
-        function resetHighlight() {
-            g.selectAll('.node').style('opacity', 1);
-            g.selectAll('.link').style('opacity', 0.6);
-        }
-
-        // 노드에 포커스
-        function focusOnNode(d) {
-            const scale = 2;
-            const translate = [width / 2 - scale * d.x, height / 2 - scale * d.y];
-            
-            svg.transition()
-                .duration(750)
-                .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
         }
 
         // 드래그 이벤트
@@ -709,7 +873,6 @@
         function setupEventListeners() {
             // 검색
             document.getElementById('searchInput').addEventListener('input', (e) => {
-                const query = e.target.value.toLowerCase();
                 applyFilters();
             });
 
@@ -724,7 +887,7 @@
                 }
             });
 
-            // 노드 타입 필터
+            // 노드 타입 필터 (수정됨 - 발주처 제거)
             document.getElementById('nodeTypeFilters').addEventListener('click', (e) => {
                 if (e.target.classList.contains('filter-btn')) {
                     document.querySelectorAll('#nodeTypeFilters .filter-btn').forEach(btn => 
@@ -746,6 +909,11 @@
 
             document.getElementById('resetZoom').addEventListener('click', () => {
                 svg.transition().call(zoom.transform, d3.zoomIdentity);
+            });
+
+            // 선택 해제 버튼
+            document.getElementById('clearSelection').addEventListener('click', () => {
+                clearSelection();
             });
 
             // 윈도우 리사이즈
@@ -770,7 +938,6 @@
             filteredData = allData.filter(d => {
                 const matchesSearch = !searchQuery || 
                     d.contract.toLowerCase().includes(searchQuery) ||
-                    d.client.toLowerCase().includes(searchQuery) ||
                     d.service.toLowerCase().includes(searchQuery);
 
                 const matchesYear = activeYear === 'all' || d.year === activeYear;
@@ -778,79 +945,19 @@
                 return matchesSearch && matchesYear;
             });
 
-            // 네트워크 데이터 재생성 (연도 필터는 다시 생성하지 않음)
-            const nodeMap = new Map();
-            const linkMap = new Map();
-
-            // 노드 생성
-            filteredData.forEach(d => {
-                // 계약명 노드
-                if (!nodeMap.has(d.contract)) {
-                    nodeMap.set(d.contract, {
-                        id: d.contract,
-                        type: 'contract',
-                        year: d.year,
-                        connections: 0
-                    });
-                }
-
-                // 발주처 노드
-                if (!nodeMap.has(d.client)) {
-                    nodeMap.set(d.client, {
-                        id: d.client,
-                        type: 'client',
-                        connections: 0
-                    });
-                }
-
-                // 수행용역 노드
-                if (!nodeMap.has(d.service)) {
-                    nodeMap.set(d.service, {
-                        id: d.service,
-                        type: 'service',
-                        connections: 0
-                    });
-                }
-
-                // 링크 생성
-                const links_to_create = [
-                    [d.contract, d.client],
-                    [d.contract, d.service],
-                    [d.client, d.service]
-                ];
-
-                links_to_create.forEach(([source, target]) => {
-                    const linkId = source < target ? `${source}|${target}` : `${target}|${source}`;
-                    if (!linkMap.has(linkId)) {
-                        linkMap.set(linkId, {
-                            source: source,
-                            target: target,
-                            weight: 1
-                        });
-                        nodeMap.get(source).connections++;
-                        nodeMap.get(target).connections++;
-                    } else {
-                        linkMap.get(linkId).weight++;
-                    }
-                });
-            });
-
-            nodes = Array.from(nodeMap.values());
-            links = Array.from(linkMap.values());
+            // 네트워크 데이터 재생성
+            createNetworkData();
 
             // 노드 타입 필터링
             if (activeType !== 'all') {
                 let allowedTypes = [];
                 
                 switch(activeType) {
-                    case 'contract-client':
-                        allowedTypes = ['contract', 'client'];
+                    case 'contract-only':
+                        allowedTypes = ['contract'];
                         break;
-                    case 'contract-service':
-                        allowedTypes = ['contract', 'service'];
-                        break;
-                    case 'client-service':
-                        allowedTypes = ['client', 'service'];
+                    case 'service-only':
+                        allowedTypes = ['service'];
                         break;
                 }
                 
@@ -861,6 +968,9 @@
                     return sourceNode && targetNode;
                 });
             }
+
+            // 선택 해제
+            clearSelection();
 
             // 그래프 재렌더링
             renderGraph();
@@ -875,4 +985,4 @@
         }
     </script>
 </body>
-</html> 
+</html>
