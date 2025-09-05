@@ -65,6 +65,97 @@
             background: rgba(255, 255, 255, 1);
         }
 
+        .year-range-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .year-range-slider {
+            position: relative;
+            height: 20px;
+            width: 100%;
+        }
+
+        .range-input {
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            background: none;
+            pointer-events: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        .range-input::-webkit-slider-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+
+        .range-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #333333;
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: all;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .range-input::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .range-input::-moz-range-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            border: none;
+        }
+
+        .range-input::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #333333;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .range-track {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .year-range-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #333333;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 4px 8px;
+            border-radius: 4px;
+            backdrop-filter: blur(8px);
+        }
+
         .filter-buttons {
             display: flex;
             flex-wrap: wrap;
@@ -537,8 +628,17 @@
                 </div>
                 
                 <div class="control-group">
-                    <label>연도 필터</label>
-                    <div class="filter-buttons" id="yearFilters"></div>
+                    <label>연도 범위</label>
+                    <div class="year-range-container">
+                        <div class="year-range-slider">
+                            <input type="range" id="yearRangeMin" class="range-input range-min" min="2020" max="2024" value="2020">
+                            <input type="range" id="yearRangeMax" class="range-input range-max" min="2020" max="2024" value="2024">
+                            <div class="range-track"></div>
+                        </div>
+                        <div class="year-range-display">
+                            <span id="yearRangeStart">2020</span> - <span id="yearRangeEnd">2024</span>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="control-group">
@@ -633,6 +733,8 @@
         let selectedServices = new Set();
         let allServices = [];
         let showSelectedOnly = false;
+        let yearRange = { min: 2020, max: 2024 };
+        let availableYears = [];
 
         // 색상 스키마 (눈의 피로 감소를 위한 부드러운 색상)
         const colors = {
@@ -687,8 +789,8 @@
             filteredData = [...allData];
             createNetworkData();
             
-            // 연도 필터는 초기 로드 시에만 생성
-            createYearFilters();
+            // 연도 범위 슬라이더 초기화
+            initializeYearRangeSlider();
             
             // 수행용역 브라우저 초기화
             initializeServiceBrowser();
@@ -787,38 +889,42 @@
             links = Array.from(linkMap.values());
         }
 
-        // 연도 필터 생성
-        let yearFiltersCreated = false;
-        function createYearFilters() {
-            if (yearFiltersCreated) return;
+        // 연도 범위 슬라이더 초기화
+        function initializeYearRangeSlider() {
+            const years = [...new Set(allData.map(d => parseInt(d.year)))].filter(y => !isNaN(y)).sort((a, b) => a - b);
+            availableYears = years;
             
-            const years = [...new Set(allData.map(d => d.year))].sort();
-            const yearFilters = document.getElementById('yearFilters');
+            if (years.length === 0) return;
             
-            yearFilters.innerHTML = '';
+            const minYear = Math.min(...years);
+            const maxYear = Math.max(...years);
             
-            // 전체 버튼
-            const allBtn = document.createElement('button');
-            allBtn.className = 'filter-btn active';
-            allBtn.textContent = '전체';
-            allBtn.dataset.year = 'all';
-            yearFilters.appendChild(allBtn);
-
-            // 연도별 버튼
-            years.forEach(year => {
-                const btn = document.createElement('button');
-                btn.className = 'filter-btn';
-                btn.textContent = year;
-                btn.dataset.year = year;
-                yearFilters.appendChild(btn);
-            });
-
+            // 슬라이더 범위 설정
+            const rangeMin = document.getElementById('yearRangeMin');
+            const rangeMax = document.getElementById('yearRangeMax');
+            
+            rangeMin.min = minYear;
+            rangeMin.max = maxYear;
+            rangeMin.value = minYear;
+            
+            rangeMax.min = minYear;
+            rangeMax.max = maxYear;
+            rangeMax.value = maxYear;
+            
+            // 전역 변수 업데이트
+            yearRange.min = minYear;
+            yearRange.max = maxYear;
+            
+            // 디스플레이 업데이트
+            updateYearRangeDisplay();
+            
             // 통계 업데이트
-            const minYear = Math.min(...years.map(y => parseInt(y)));
-            const maxYear = Math.max(...years.map(y => parseInt(y)));
             document.getElementById('yearRange').textContent = `${minYear} - ${maxYear}`;
-            
-            yearFiltersCreated = true;
+        }
+        
+        function updateYearRangeDisplay() {
+            document.getElementById('yearRangeStart').textContent = yearRange.min;
+            document.getElementById('yearRangeEnd').textContent = yearRange.max;
         }
 
         // 그래프 초기화
@@ -1097,16 +1203,32 @@
                 applyFilters();
             });
 
-            // 연도 필터
-            document.getElementById('yearFilters').addEventListener('click', (e) => {
-                if (e.target.classList.contains('filter-btn')) {
-                    document.querySelectorAll('#yearFilters .filter-btn').forEach(btn => 
-                        btn.classList.remove('active')
-                    );
-                    e.target.classList.add('active');
-                    applyFilters();
+            // 연도 범위 슬라이더 이벤트
+            const rangeMin = document.getElementById('yearRangeMin');
+            const rangeMax = document.getElementById('yearRangeMax');
+            
+            function handleRangeChange() {
+                const minVal = parseInt(rangeMin.value);
+                const maxVal = parseInt(rangeMax.value);
+                
+                // 최소값이 최대값보다 큰 경우 조정
+                if (minVal > maxVal) {
+                    if (event.target === rangeMin) {
+                        rangeMax.value = minVal;
+                    } else {
+                        rangeMin.value = maxVal;
+                    }
                 }
-            });
+                
+                yearRange.min = parseInt(rangeMin.value);
+                yearRange.max = parseInt(rangeMax.value);
+                
+                updateYearRangeDisplay();
+                applyFilters();
+            }
+            
+            rangeMin.addEventListener('input', handleRangeChange);
+            rangeMax.addEventListener('input', handleRangeChange);
 
             // 노드 타입 필터 (수정됨 - 발주처 제거)
             document.getElementById('nodeTypeFilters').addEventListener('click', (e) => {
@@ -1152,7 +1274,6 @@
         // 필터 적용
         function applyFilters() {
             const searchQuery = document.getElementById('searchInput').value.toLowerCase();
-            const activeYear = document.querySelector('#yearFilters .filter-btn.active')?.dataset.year;
             const activeType = document.querySelector('#nodeTypeFilters .filter-btn.active')?.dataset.type;
 
             // 데이터 필터링
@@ -1161,7 +1282,8 @@
                     d.contract.toLowerCase().includes(searchQuery) ||
                     d.service.toLowerCase().includes(searchQuery);
 
-                const matchesYear = activeYear === 'all' || d.year === activeYear;
+                const year = parseInt(d.year);
+                const matchesYear = !isNaN(year) && year >= yearRange.min && year <= yearRange.max;
 
                 return matchesSearch && matchesYear;
             });
