@@ -194,7 +194,7 @@
                 console.log('JSON 데이터 로드 중...');
                 const startTime = performance.now();
                 
-                const response = await fetch('data.json');
+                const response = await fetch('./data.json');
                 const jsonData = await response.json();
                 
                 console.log(`JSON 로드 완료: ${jsonData.records.length.toLocaleString()}개 레코드`);
@@ -230,7 +230,7 @@
             console.log('CSV 데이터 로드 중...');
             const startTime = performance.now();
             
-            const response = await fetch('202508_EAN계약현황_완전본.csv');
+            const response = await fetch('./data.json');
             const text = await response.text();
             
             // CSV 파싱
