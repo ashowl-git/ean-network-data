@@ -74,136 +74,71 @@
             color: rgba(107, 114, 128, 0.6);
         }
 
-        /* 타임라인 룰러 디자인 */
-        .timeline-ruler-container {
+        /* 연도 선택기 디자인 */
+        .year-selector-container {
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
 
-        .timeline-ruler {
-            position: relative;
-            height: 60px;
+        .year-selector {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: transparent;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
             width: 100%;
-            padding: 10px 0;
         }
 
-        .ruler-track {
-            position: absolute;
-            top: 30px;
-            left: 15px;
-            right: 15px;
-            height: 2px;
-            background: linear-gradient(90deg, #e5e7eb 0%, #10b981 50%, #34d399 100%);
-            border-radius: 1px;
+        .year-input-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            justify-content: center;
         }
 
-        .ruler-ticks {
-            position: absolute;
-            top: 25px;
-            left: 15px;
-            right: 15px;
-            height: 12px;
-        }
-
-        .ruler-tick {
-            position: absolute;
-            width: 1px;
-            height: 8px;
-            background: #d1d5db;
-            transform: translateX(-50%);
-        }
-
-        .ruler-tick.major {
-            width: 2px;
-            height: 12px;
-            top: -2px;
-            background: #9ca3af;
-        }
-
-        .ruler-labels {
-            position: absolute;
-            top: 5px;
-            left: 15px;
-            right: 15px;
-            height: 20px;
-        }
-
-        .ruler-year {
-            position: absolute;
+        .year-input-group label {
             font-size: 12px;
             font-weight: 600;
-            color: #374151;
-            transform: translateX(-50%);
+            color: #6b7280;
+            text-transform: none;
+            letter-spacing: normal;
+            border: none;
+            background: none;
+            padding: 0;
             white-space: nowrap;
-            user-select: none;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 2px 6px;
-            border-radius: 4px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
-        .ruler-year.selected {
-            color: #10b981;
-            font-weight: 700;
-            background: rgba(16, 185, 129, 0.1);
-            border-color: rgba(16, 185, 129, 0.3);
-            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+        .year-dropdown {
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 75px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
         }
 
-        .selection-range {
-            position: absolute;
-            top: 25px;
-            left: 15px;
-            right: 15px;
-            height: 12px;
+        .year-dropdown:focus {
+            outline: none;
+            border-color: rgba(16, 185, 129, 0.6);
+            box-shadow: 
+                inset 0 1px 3px rgba(0, 0, 0, 0.05),
+                0 0 0 3px rgba(16, 185, 129, 0.15);
         }
 
-        .range-fill {
-            position: absolute;
-            height: 4px;
-            top: 4px;
-            background: linear-gradient(90deg, #10b981, #34d399);
-            border-radius: 2px;
-            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
-        }
-
-        .range-handle {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            top: -4px;
-            background: #ffffff;
-            border: 3px solid #10b981;
-            border-radius: 50%;
-            cursor: grab;
-            transform: translateX(-50%);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 2;
-        }
-
-        .range-handle:hover {
-            transform: translateX(-50%) scale(1.15);
-            border-color: #059669;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-        }
-
-        .range-handle:active {
-            cursor: grabbing;
-            transform: translateX(-50%) scale(1.1);
-        }
-
-        .range-handle::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 8px;
-            height: 8px;
-            background: #10b981;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
+        .year-dropdown:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            transform: translateY(-1px);
         }
 
         .timeline-display {

@@ -53,27 +53,37 @@
             <div class="floating-controls">
                 <div class="control-group">
                     <label>검색</label>
-                    <div style="display: flex; gap: 8px; align-items: flex-end;">
-                        <input type="text" class="search-input" id="searchInput" placeholder="계약명, 수행용역 검색..." style="flex: 1;">
-                        <div class="zoom-controls-inline">
-                            <button class="zoom-btn" id="zoomIn">+</button>
-                            <button class="zoom-btn" id="zoomOut">−</button>
-                            <button class="zoom-btn" id="resetZoom">⌂</button>
-                        </div>
+                    <input type="text" class="search-input" id="searchInput" placeholder="계약명, 수행용역 검색..." style="width: 100%;">
+                    <div class="zoom-controls-inline" style="justify-content: center; margin-top: 12px;">
+                        <button class="zoom-btn" id="zoomIn">+</button>
+                        <button class="zoom-btn" id="zoomOut">−</button>
+                        <button class="zoom-btn" id="resetZoom">⌂</button>
                     </div>
                 </div>
                 
                 <div class="control-group">
                     <label>회사 연대기</label>
-                    <div class="timeline-ruler-container">
-                        <div class="timeline-ruler">
-                            <div class="ruler-track"></div>
-                            <div class="ruler-ticks"></div>
-                            <div class="ruler-labels"></div>
-                            <div class="selection-range">
-                                <div class="range-handle range-start" data-year="2020"></div>
-                                <div class="range-handle range-end" data-year="2024"></div>
-                                <div class="range-fill"></div>
+                    <div class="year-selector-container">
+                        <div class="year-selector">
+                            <div class="year-input-group">
+                                <label for="startYear">시작:</label>
+                                <select id="startYear" class="year-dropdown">
+                                    <option value="2020">2020</option>
+                                    <option value="2021">2021</option>
+                                    <option value="2022">2022</option>
+                                    <option value="2023">2023</option>
+                                    <option value="2024">2024</option>
+                                </select>
+                            </div>
+                            <div class="year-input-group">
+                                <label for="endYear">끝:</label>
+                                <select id="endYear" class="year-dropdown">
+                                    <option value="2020">2020</option>
+                                    <option value="2021">2021</option>
+                                    <option value="2022">2022</option>
+                                    <option value="2023">2023</option>
+                                    <option value="2024" selected>2024</option>
+                                </select>
                             </div>
                         </div>
                         <div class="timeline-display">
@@ -105,13 +115,6 @@
                 </div>
                 
                 <div class="control-group">
-                    <label>노드 타입</label>
-                    <div class="filter-buttons" id="nodeTypeFilters">
-                        <button class="filter-btn active" data-type="all">전체</button>
-                        <button class="filter-btn" data-type="contract-only">계약명만</button>
-                        <button class="filter-btn" data-type="service-only">수행용역만</button>
-                    </div>
-                    
                     <div class="inline-legend">
                         <div class="legend-item">
                             <div class="legend-color" style="background: #3b82f6;"></div>
@@ -264,24 +267,34 @@
             }
         }
 
-        // 네트워크 데이터 생성 (간소화)
+        // 네트워크 데이터 생성 (무결성 검증 강화)
         function createNetworkData() {
             console.log('네트워크 데이터 생성 시작...', filteredData.length, '개 항목');
             
             const nodeMap = new Map();
             const linkMap = new Map();
-
             let processedCount = 0;
-            filteredData.forEach(d => {
-                if (!d.contract || !d.service) {
-                    console.warn('비어있는 데이터:', d);
+            let errorCount = 0;
+
+            filteredData.forEach((d, index) => {
+                // 데이터 무결성 검증
+                if (!d || typeof d.contract === 'undefined' || typeof d.service === 'undefined') {
+                    console.warn(`잘못된 데이터 항목 ${index}:`, d);
+                    errorCount++;
+                    return;
+                }
+                
+                if (!d.contract || d.contract === '' || !d.service || d.service === '') {
+                    console.warn(`비어있는 데이터 ${index}:`, d);
+                    errorCount++;
                     return;
                 }
                 
                 // 계약명 노드
-                if (!nodeMap.has(d.contract)) {
-                    nodeMap.set(d.contract, {
-                        id: d.contract,
+                const contractId = String(d.contract).trim();
+                if (!nodeMap.has(contractId)) {
+                    nodeMap.set(contractId, {
+                        id: contractId,
                         type: 'contract',
                         year: d.year,
                         connections: 0
@@ -289,24 +302,25 @@
                 }
 
                 // 수행용역 노드
-                if (!nodeMap.has(d.service)) {
-                    nodeMap.set(d.service, {
-                        id: d.service,
+                const serviceId = String(d.service).trim();
+                if (!nodeMap.has(serviceId)) {
+                    nodeMap.set(serviceId, {
+                        id: serviceId,
                         type: 'service',
                         connections: 0
                     });
                 }
 
                 // 링크 생성
-                const linkId = `${d.contract}|${d.service}`;
+                const linkId = `${contractId}|${serviceId}`;
                 if (!linkMap.has(linkId)) {
                     linkMap.set(linkId, {
-                        source: d.contract,
-                        target: d.service,
+                        source: contractId,
+                        target: serviceId,
                         weight: 1
                     });
-                    nodeMap.get(d.contract).connections++;
-                    nodeMap.get(d.service).connections++;
+                    nodeMap.get(contractId).connections++;
+                    nodeMap.get(serviceId).connections++;
                 } else {
                     linkMap.get(linkId).weight++;
                 }
@@ -317,13 +331,24 @@
             nodes = Array.from(nodeMap.values());
             links = Array.from(linkMap.values());
             
+            const contractNodes = nodes.filter(n => n.type === 'contract').length;
+            const serviceNodes = nodes.filter(n => n.type === 'service').length;
+            
             console.log(`네트워크 데이터 생성 완료:`, {
+                totalRecords: filteredData.length,
                 processed: processedCount,
-                nodes: nodes.length,
+                errors: errorCount,
+                totalNodes: nodes.length,
+                contractNodes: contractNodes,
+                serviceNodes: serviceNodes,
                 links: links.length,
-                contracts: nodes.filter(n => n.type === 'contract').length,
-                services: nodes.filter(n => n.type === 'service').length
+                expectedNodes: `계약 ${contractNodes} + 서비스 ${serviceNodes} = ${contractNodes + serviceNodes}`
             });
+            
+            // 무결성 검증 결과 출력
+            if (errorCount > 0) {
+                console.warn(`데이터 무결성 문제: ${errorCount}개 항목에서 오류 발견`);
+            }
         }
 
         // 그래프 초기화 (간소화)
@@ -593,47 +618,8 @@
                 }
             });
             
-            // 노드 타입 필터
-            const filterButtons = document.querySelectorAll('#nodeTypeFilters .filter-btn');
-            filterButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    // 활성 버튼 변경
-                    filterButtons.forEach(b => b.classList.remove('active'));
-                    button.classList.add('active');
-                    
-                    const filterType = button.dataset.type;
-                    applyNodeTypeFilter(filterType);
-                });
-            });
         }
         
-        // 노드 타입 필터 적용
-        function applyNodeTypeFilter(filterType) {
-            console.log('노드 타입 필터 적용:', filterType);
-            
-            g.selectAll('.node')
-                .style('display', d => {
-                    switch (filterType) {
-                        case 'contract-only':
-                            return d.type === 'contract' ? null : 'none';
-                        case 'service-only':
-                            return d.type === 'service' ? null : 'none';
-                        case 'all':
-                        default:
-                            return null;
-                    }
-                });
-            
-            // 연결된 링크도 필터링
-            g.selectAll('.link')
-                .style('display', d => {
-                    const sourceVisible = g.select(`.node[data-id="${d.source.id}"]`).style('display') !== 'none';
-                    const targetVisible = g.select(`.node[data-id="${d.target.id}"]`).style('display') !== 'none';
-                    return (sourceVisible && targetVisible) ? null : 'none';
-                });
-                
-            updateStats();
-        }
 
         // 통계 업데이트
         function updateStats() {
@@ -660,29 +646,52 @@
             yearRange.min = startYear;
             yearRange.max = endYear;
             
-            // 눈금과 라벨 생성
-            const rulerTicks = document.querySelector('.ruler-ticks');
-            const rulerLabels = document.querySelector('.ruler-labels');
+            // 드롭다운 옵션 생성
+            const startYearSelect = document.getElementById('startYear');
+            const endYearSelect = document.getElementById('endYear');
             
-            rulerTicks.innerHTML = '';
-            rulerLabels.innerHTML = '';
+            // 기존 옵션 제거
+            startYearSelect.innerHTML = '';
+            endYearSelect.innerHTML = '';
             
-            availableYears.forEach((year, index) => {
-                const position = (index / (availableYears.length - 1)) * 100;
+            // 사용 가능한 연도로 옵션 생성
+            availableYears.forEach(year => {
+                const startOption = document.createElement('option');
+                startOption.value = year;
+                startOption.textContent = year;
+                if (year === startYear) startOption.selected = true;
+                startYearSelect.appendChild(startOption);
                 
-                const tick = document.createElement('div');
-                tick.className = 'ruler-tick';
-                tick.style.left = position + '%';
-                rulerTicks.appendChild(tick);
-                
-                const label = document.createElement('div');
-                label.className = 'ruler-label';
-                label.style.left = position + '%';
-                label.textContent = year;
-                rulerLabels.appendChild(label);
+                const endOption = document.createElement('option');
+                endOption.value = year;
+                endOption.textContent = year;
+                if (year === endYear) endOption.selected = true;
+                endYearSelect.appendChild(endOption);
+            });
+            
+            // 드롭다운 이벤트 리스너 추가
+            startYearSelect.addEventListener('change', (e) => {
+                yearRange.min = parseInt(e.target.value);
+                updateTimelineDisplay();
+                filterDataByYear();
+            });
+            
+            endYearSelect.addEventListener('change', (e) => {
+                yearRange.max = parseInt(e.target.value);
+                updateTimelineDisplay();
+                filterDataByYear();
             });
             
             updateTimelineDisplay();
+        }
+        
+        // 년도 필터링 함수
+        function filterDataByYear() {
+            // 년도 범위에 따라 데이터 필터링
+            filteredData = allData.filter(d => d.year >= yearRange.min && d.year <= yearRange.max);
+            createNetworkData();
+            renderGraph();
+            updateStats();
         }
         
         // 타임라인 디스플레이 업데이트
