@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EAN 계약 네트워크</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.2/dist/pixi.min.js"></script>
     <link rel="preload" href="styles.css?v=2024090701" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="styles.css?v=2024090701"></noscript>
     <style>
@@ -152,21 +153,21 @@
             
             <button class="clear-selection" id="clearSelection">선택 해제</button>
             
-            <svg id="graph"></svg>
+            <div id="graph-container"></div>
             <div class="tooltip" id="tooltip"></div>
         </div>
     </div>
 
     <script>
-        // 전역 변수 (간소화)
+        // 전역 변수 (PIXI.js 기반)
         let allData = [];
         let filteredData = [];
         let nodes = [];
         let links = [];
         let simulation;
-        let svg, g;
+        let app, viewport;
+        let nodeContainer, linkContainer;
         let width, height;
-        let zoom;
         let selectedNode = null;
         let currentScale = 1;
         let selectedServices = new Set();
@@ -175,6 +176,15 @@
         let yearRange = { min: 2020, max: 2024 };
         let availableYears = [];
         let isSimulationRunning = false;
+        
+        // PIXI.js 관련 변수
+        let nodeGraphics = new Map();
+        let linkGraphics = new Map();
+        
+        // 성능 모니터링 변수
+        let frameCount = 0;
+        let lastTime = performance.now();
+        let fps = 0;
 
         // 색상 스키마 (수행용역 더 진한 녹색)
         const colors = {
@@ -353,34 +363,46 @@
 
         // 그래프 초기화 (간소화)
         function initGraph() {
-            console.log('그래프 초기화...');
+            console.log('PIXI.js WebGL 그래프 초기화...');
             
             const container = document.querySelector('.graph-container');
             width = container.clientWidth;
             height = container.clientHeight;
 
-            svg = d3.select('#graph')
-                .attr('width', width)
-                .attr('height', height);
+            // PIXI.js Application 생성 (WebGL 활성화)
+            app = new PIXI.Application({
+                width: width,
+                height: height,
+                backgroundColor: 0xf8fafc, // 배경색
+                antialias: true,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true,
+                powerPreference: 'high-performance' // GPU 성능 우선
+            });
 
-            g = svg.append('g');
-            
-            // 간단한 줌 설정
-            zoom = d3.zoom()
-                .scaleExtent([0.1, 4])
-                .on('zoom', (event) => {
-                    g.attr('transform', event.transform);
-                    currentScale = event.transform.k;
-                });
+            // 컨테이너에 PIXI 캔버스 추가
+            const graphContainer = document.getElementById('graph-container');
+            graphContainer.appendChild(app.view);
 
-            svg.call(zoom);
+            // 뷰포트 컨테이너 생성 (줌/팬용)
+            viewport = new PIXI.Container();
+            app.stage.addChild(viewport);
 
-            // 초기 줌 레벨을 0.4로 설정 (줌 아웃된 상태에서 시작)
-            const initialZoom = d3.zoomIdentity.scale(0.2).translate(width * 1.95, height * 1.95);
-            svg.call(zoom.transform, initialZoom);
+            // 렌더링 레이어 생성
+            linkContainer = new PIXI.Container();
+            nodeContainer = new PIXI.Container();
+            viewport.addChild(linkContainer);
+            viewport.addChild(nodeContainer);
+
+            // 기본 줌/팬 설정
+            setupInteractions();
+
+            // 초기 줌 레벨 설정 (줌 아웃된 상태에서 시작)
             currentScale = 0.2;
+            viewport.scale.set(currentScale);
+            viewport.position.set(width * 1.95 * currentScale, height * 1.95 * currentScale);
 
-            // 시뮬레이션 설정 (STARFIELD 계수 사용)
+            // D3.js force simulation 설정 (레이아웃 계산용)
             simulation = d3.forceSimulation()
                 .force('link', d3.forceLink().id(d => d.id).distance(180).strength(0.4))
                 .force('charge', d3.forceManyBody().strength(-800).distanceMax(1000))
@@ -388,106 +410,307 @@
                 .force('collision', d3.forceCollide().radius(d => getNodeSize(d) + 10));
 
             renderGraph();
+            
+            // 성능 모니터링 시작
+            startPerformanceMonitoring();
+            
+            console.log('PIXI.js WebGL 초기화 완료');
+        }
+        
+        // 성능 모니터링 시작
+        function startPerformanceMonitoring() {
+            function updateFPS() {
+                frameCount++;
+                const currentTime = performance.now();
+                
+                if (currentTime - lastTime >= 1000) {
+                    fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+                    frameCount = 0;
+                    lastTime = currentTime;
+                    
+                    // FPS를 UI에 표시
+                    updatePerformanceStats();
+                }
+                
+                requestAnimationFrame(updateFPS);
+            }
+            
+            requestAnimationFrame(updateFPS);
+        }
+        
+        // 성능 통계 업데이트
+        function updatePerformanceStats() {
+            // 콘솔에 성능 정보 출력
+            console.log(`FPS: ${fps}, Nodes: ${nodes.length}, Links: ${links.length}, WebGL: ${app.renderer.type === 1 ? 'Yes' : 'No'}`);
+            
+            // 페이지에 성능 정보 표시 (개발자용)
+            if (!document.getElementById('performance-stats')) {
+                const perfDiv = document.createElement('div');
+                perfDiv.id = 'performance-stats';
+                perfDiv.style.position = 'fixed';
+                perfDiv.style.top = '10px';
+                perfDiv.style.left = '10px';
+                perfDiv.style.background = 'rgba(0,0,0,0.8)';
+                perfDiv.style.color = 'white';
+                perfDiv.style.padding = '10px';
+                perfDiv.style.borderRadius = '5px';
+                perfDiv.style.fontFamily = 'monospace';
+                perfDiv.style.fontSize = '12px';
+                perfDiv.style.zIndex = '10000';
+                document.body.appendChild(perfDiv);
+            }
+            
+            const perfDiv = document.getElementById('performance-stats');
+            perfDiv.innerHTML = `
+                FPS: ${fps}<br>
+                Nodes: ${nodes.length}<br>
+                Links: ${links.length}<br>
+                WebGL: ${app.renderer.type === 1 ? 'Yes' : 'No'}<br>
+                Scale: ${currentScale.toFixed(2)}
+            `;
         }
 
-        // 그래프 렌더링 (간소화 및 고속화)
+        // PIXI.js 인터랙션 설정
+        function setupInteractions() {
+            let isDragging = false;
+            let dragStart = { x: 0, y: 0 };
+
+            app.view.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                dragStart.x = e.clientX - viewport.position.x;
+                dragStart.y = e.clientY - viewport.position.y;
+            });
+
+            app.view.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    viewport.position.x = e.clientX - dragStart.x;
+                    viewport.position.y = e.clientY - dragStart.y;
+                }
+            });
+
+            app.view.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // 휠 줌 지원
+            app.view.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                const newScale = Math.max(0.1, Math.min(4, currentScale * scaleFactor));
+                
+                if (newScale !== currentScale) {
+                    const worldPos = {
+                        x: (e.clientX - viewport.position.x) / currentScale,
+                        y: (e.clientY - viewport.position.y) / currentScale
+                    };
+                    
+                    currentScale = newScale;
+                    viewport.scale.set(currentScale);
+                    
+                    viewport.position.x = e.clientX - worldPos.x * currentScale;
+                    viewport.position.y = e.clientY - worldPos.y * currentScale;
+                }
+            });
+        }
+
+        // PIXI.js 그래프 렌더링 (WebGL 기반)
         function renderGraph() {
-            console.log('렌더링 시작...', nodes.length, '개 노드,', links.length, '개 링크');
+            console.log('PIXI.js WebGL 렌더링 시작...', nodes.length, '개 노드,', links.length, '개 링크');
             
             if (!nodes || nodes.length === 0) {
                 console.error('노드가 비어있음!');
                 return;
             }
             
-            g.selectAll('*').remove();
+            // 기존 그래픽 요소 클리어
+            linkContainer.removeChildren();
+            nodeContainer.removeChildren();
+            nodeGraphics.clear();
+            linkGraphics.clear();
 
-            // 링크 그리기
-            const link = g.append('g')
-                .attr('class', 'links')
-                .selectAll('line')
-                .data(links)
-                .enter().append('line')
-                .attr('class', 'link')
-                .attr('stroke', '#999')
-                .attr('stroke-opacity', 0.4)
-                .attr('stroke-width', d => d.weight ? Math.sqrt(d.weight) + 1 : 1);
+            // 색상 변환 함수
+            function hexToPixiColor(hex) {
+                return parseInt(hex.replace('#', '0x'));
+            }
 
-            // 노드 그리기
-            const node = g.append('g')
-                .attr('class', 'nodes')
-                .selectAll('circle')
-                .data(nodes)
-                .enter().append('circle')
-                .attr('class', 'node')
-                .attr('data-id', d => d.id)
-                .attr('r', d => getNodeSize(d))
-                .attr('fill', d => colors[d.type])
-                .attr('stroke', '#fff')
-                .attr('stroke-width', 1.5)
-                .style('cursor', 'pointer')
-                .call(d3.drag()
-                    .on('start', dragstarted)
-                    .on('drag', dragged)
-                    .on('end', dragended))
-                .on('mouseover', showTooltip)
-                .on('mouseout', hideTooltip)
-                .on('click', (event, d) => {
-                    event.stopPropagation();
-                    selectNode(d);
+            // 링크 렌더링 (PIXI Graphics)
+            console.log('링크 렌더링 중...');
+            links.forEach((link, index) => {
+                const linkGraphic = new PIXI.Graphics();
+                linkGraphic.lineStyle(
+                    link.weight ? Math.sqrt(link.weight) + 1 : 1, 
+                    0x999999, 
+                    0.4
+                );
+                linkGraphic.moveTo(0, 0).lineTo(100, 100); // 임시 위치, tick에서 업데이트
+                linkContainer.addChild(linkGraphic);
+                linkGraphics.set(index, linkGraphic);
+            });
+
+            // 노드 렌더링 (PIXI Graphics)
+            console.log('노드 렌더링 중...');
+            nodes.forEach((node, index) => {
+                const nodeGraphic = new PIXI.Graphics();
+                const radius = getNodeSize(node);
+                const fillColor = hexToPixiColor(colors[node.type]);
+                
+                nodeGraphic.beginFill(fillColor);
+                nodeGraphic.lineStyle(1.5, 0xffffff);
+                nodeGraphic.drawCircle(0, 0, radius);
+                nodeGraphic.endFill();
+                
+                // 인터랙티브 설정
+                nodeGraphic.interactive = true;
+                nodeGraphic.cursor = 'pointer';
+                nodeGraphic.userData = node;
+                
+                // 이벤트 리스너
+                nodeGraphic.on('pointerover', (event) => {
+                    showTooltipPIXI(event, node);
                 });
+                nodeGraphic.on('pointerout', hideTooltip);
+                nodeGraphic.on('pointerdown', (event) => {
+                    event.stopPropagation();
+                    selectNode(node);
+                });
+                
+                // 드래그 이벤트 설정
+                setupNodeDrag(nodeGraphic, node);
+                
+                nodeContainer.addChild(nodeGraphic);
+                nodeGraphics.set(node.id, nodeGraphic);
+            });
 
-            // 라벨 추가 (수행용역만)
-            const label = g.append('g')
-                .attr('class', 'labels')
-                .selectAll('text')
-                .data(nodes.filter(d => d.type === 'service'))
-                .enter().append('text')
-                .attr('class', 'node-label')
-                .attr('text-anchor', 'middle')
-                .style('font-size', '10px')
-                .style('fill', '#333')
-                .style('pointer-events', 'none')
-                .text(d => truncateText(d.id, 15));
+            // 텍스트 라벨 추가 (서비스 노드만)
+            console.log('라벨 렌더링 중...');
+            const serviceNodes = nodes.filter(d => d.type === 'service');
+            serviceNodes.forEach(node => {
+                const text = new PIXI.Text(truncateText(node.id, 15), {
+                    fontSize: 10,
+                    fill: 0x333333,
+                    align: 'center'
+                });
+                text.anchor.set(0.5);
+                text.userData = node;
+                nodeContainer.addChild(text);
+                
+                // 라벨 그래픽 맵에 저장 (업데이트용)
+                const labelKey = `label_${node.id}`;
+                nodeGraphics.set(labelKey, text);
+            });
 
-            console.log('렌더링 완료:', {
-                linkElements: link.size(),
-                nodeElements: node.size(), 
-                labelElements: label.size()
+            console.log('PIXI.js 렌더링 완료:', {
+                linkElements: links.length,
+                nodeElements: nodes.length, 
+                labelElements: serviceNodes.length
             });
 
             // 배경 클릭 시 선택 해제
-            svg.on('click', () => {
-                clearSelection();
+            app.view.addEventListener('click', (e) => {
+                if (e.target === app.view) {
+                    clearSelection();
+                }
             });
 
-            // 시뮬레이션 설정
+            // D3.js 시뮬레이션 설정
             simulation.nodes(nodes);
             simulation.force('link').links(links);
 
-            // 간단한 tick 함수
+            // PIXI.js tick 함수 (고성능)
             simulation.on('tick', () => {
-                link
-                    .attr('x1', d => d.source.x)
-                    .attr('y1', d => d.source.y)
-                    .attr('x2', d => d.target.x)
-                    .attr('y2', d => d.target.y);
+                // 링크 위치 업데이트
+                links.forEach((link, index) => {
+                    const linkGraphic = linkGraphics.get(index);
+                    if (linkGraphic) {
+                        linkGraphic.clear();
+                        linkGraphic.lineStyle(
+                            link.weight ? Math.sqrt(link.weight) + 1 : 1, 
+                            0x999999, 
+                            0.4
+                        );
+                        linkGraphic.moveTo(link.source.x, link.source.y);
+                        linkGraphic.lineTo(link.target.x, link.target.y);
+                    }
+                });
 
-                node
-                    .attr('cx', d => d.x)
-                    .attr('cy', d => d.y);
-
-                label
-                    .attr('x', d => d.x)
-                    .attr('y', d => d.y + getNodeSize(d) + 12);
+                // 노드 위치 업데이트
+                nodes.forEach(node => {
+                    const nodeGraphic = nodeGraphics.get(node.id);
+                    if (nodeGraphic) {
+                        nodeGraphic.position.set(node.x, node.y);
+                    }
+                    
+                    // 라벨 위치 업데이트 (서비스 노드만)
+                    if (node.type === 'service') {
+                        const labelGraphic = nodeGraphics.get(`label_${node.id}`);
+                        if (labelGraphic) {
+                            labelGraphic.position.set(node.x, node.y + getNodeSize(node) + 12);
+                        }
+                    }
+                });
             });
 
             // 시뮬레이션 시작
             simulation.alpha(1).restart();
             isSimulationRunning = true;
-            console.log('시뮬레이션 시작됨');
+            console.log('PIXI.js WebGL 시뮬레이션 시작됨');
             
             // 로딩 화면 숨김
             document.getElementById('loading').style.display = 'none';
+        }
+
+        // PIXI.js 툴팁 표시
+        function showTooltipPIXI(event, node) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = `
+                <strong>${node.id}</strong><br>
+                타입: ${node.type === 'contract' ? '계약' : '수행용역'}<br>
+                연결: ${node.connections || 0}개
+            `;
+            tooltip.style.left = event.data.global.x + 10 + 'px';
+            tooltip.style.top = event.data.global.y - 10 + 'px';
+            tooltip.style.display = 'block';
+        }
+
+        // PIXI.js 노드 드래그 설정
+        function setupNodeDrag(nodeGraphic, nodeData) {
+            let isDragging = false;
+            
+            nodeGraphic.on('pointerdown', (event) => {
+                isDragging = true;
+                nodeGraphic.alpha = 0.8;
+                if (!event.data.originalEvent.shiftKey) {
+                    simulation.alphaTarget(0.3).restart();
+                }
+            });
+            
+            nodeGraphic.on('pointermove', (event) => {
+                if (isDragging) {
+                    const position = event.data.getLocalPosition(viewport);
+                    nodeData.fx = position.x;
+                    nodeData.fy = position.y;
+                }
+            });
+            
+            nodeGraphic.on('pointerup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    nodeGraphic.alpha = 1.0;
+                    if (!simulation.alphaTarget()) simulation.alphaTarget(0);
+                    nodeData.fx = null;
+                    nodeData.fy = null;
+                }
+            });
+            
+            nodeGraphic.on('pointerupoutside', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    nodeGraphic.alpha = 1.0;
+                    if (!simulation.alphaTarget()) simulation.alphaTarget(0);
+                    nodeData.fx = null;
+                    nodeData.fy = null;
+                }
+            });
         }
 
         // 노드 크기 계산
@@ -546,16 +769,7 @@
         }
 
         // 전체 보기로 리셋
-        function resetToOptimalView() {
-            const optimalTransform = getOptimalZoomTransform();
-            svg.transition()
-                .duration(750)
-                .ease(d3.easeQuadOut)
-                .call(zoom.transform, optimalTransform);
-        }
-
-        // 나머지 함수들은 기존과 동일하게 유지...
-        // (타임라인, 서비스 브라우저, 이벤트 리스너 등은 기존 코드 사용)
+        // 구 SVG resetToOptimalView() 함수는 resetToOptimalViewPIXI()로 교체됨
 
         // 기본 함수들
         function showTooltip(event, d) {
@@ -592,13 +806,33 @@
                 }
             });
 
-            g.selectAll('.node')
-                .classed('blurred', d => !connectedNodes.has(d.id))
-                .classed('highlighted', d => connectedNodes.has(d.id));
+            // PIXI.js 노드 하이라이트
+            nodes.forEach(node => {
+                const nodeGraphic = nodeGraphics.get(node.id);
+                if (nodeGraphic) {
+                    if (connectedNodes.has(node.id)) {
+                        nodeGraphic.alpha = 1.0;
+                        nodeGraphic.tint = 0xffffff;
+                    } else {
+                        nodeGraphic.alpha = 0.3;
+                        nodeGraphic.tint = 0x888888;
+                    }
+                }
+            });
 
-            g.selectAll('.link')
-                .classed('blurred', d => !connectedLinks.has(d))
-                .classed('highlighted', d => connectedLinks.has(d));
+            // PIXI.js 링크 하이라이트
+            links.forEach((link, index) => {
+                const linkGraphic = linkGraphics.get(index);
+                if (linkGraphic) {
+                    if (connectedLinks.has(link)) {
+                        linkGraphic.alpha = 0.8;
+                        linkGraphic.tint = 0xffffff;
+                    } else {
+                        linkGraphic.alpha = 0.1;
+                        linkGraphic.tint = 0x888888;
+                    }
+                }
+            });
 
             document.getElementById('clearSelection').classList.add('visible');
         }
@@ -608,50 +842,45 @@
             selectedServices.clear();
             showSelectedOnly = false;
             
-            g.selectAll('.node')
-                .classed('blurred', false)
-                .classed('highlighted', false)
-                .style('display', null);
+            // PIXI.js 노드 상태 초기화
+            nodes.forEach(node => {
+                const nodeGraphic = nodeGraphics.get(node.id);
+                if (nodeGraphic) {
+                    nodeGraphic.alpha = 1.0;
+                    nodeGraphic.tint = 0xffffff;
+                    nodeGraphic.visible = true;
+                }
+            });
 
-            g.selectAll('.link')
-                .classed('blurred', false)
-                .classed('highlighted', false)
-                .style('display', null);
+            // PIXI.js 링크 상태 초기화
+            links.forEach((link, index) => {
+                const linkGraphic = linkGraphics.get(index);
+                if (linkGraphic) {
+                    linkGraphic.alpha = 0.4;
+                    linkGraphic.tint = 0xffffff;
+                    linkGraphic.visible = true;
+                }
+            });
 
             document.getElementById('clearSelection').classList.remove('visible');
         }
 
         // 드래그 이벤트
-        function dragstarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-        }
+        // SVG 드래그 함수들은 PIXI.js setupNodeDrag()로 이동됨
 
-        function dragged(event, d) {
-            d.fx = event.x;
-            d.fy = event.y;
-        }
-
-        function dragended(event, d) {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-        }
-
-        // 이벤트 리스너 설정
+        // PIXI.js 이벤트 리스너 설정
         function setupEventListeners() {
-            // 줌 컨트롤
+            // PIXI.js 줌 컨트롤
             document.getElementById('zoomIn').addEventListener('click', () => {
-                svg.transition().duration(300).call(zoom.scaleBy, 1.2);
+                zoomInPIXI();
             });
 
             document.getElementById('zoomOut').addEventListener('click', () => {
-                svg.transition().duration(300).call(zoom.scaleBy, 0.8);
+                zoomOutPIXI();
             });
 
             document.getElementById('resetZoom').addEventListener('click', () => {
-                resetToOptimalView();
+                resetToOptimalViewPIXI();
             });
 
             // 선택 해제 버튼
@@ -659,32 +888,111 @@
                 clearSelection();
             });
             
-            // 검색 기능
+            // PIXI.js 검색 기능
             const searchInput = document.getElementById('searchInput');
             searchInput.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase().trim();
-                
-                if (searchTerm === '') {
-                    // 검색어가 비어있으면 모든 노드 표시
-                    g.selectAll('.node')
-                        .classed('search-match', false)
-                        .classed('search-dim', false);
-                } else {
-                    // 검색 결과 하이라이트
-                    g.selectAll('.node')
-                        .classed('search-match', d => d.id.toLowerCase().includes(searchTerm))
-                        .classed('search-dim', d => !d.id.toLowerCase().includes(searchTerm));
-                }
+                searchNodesPIXI(searchTerm);
             });
+        }
+
+        // PIXI.js 줌 인 함수
+        function zoomInPIXI() {
+            const scaleFactor = 1.2;
+            const newScale = Math.min(4, currentScale * scaleFactor);
+            if (newScale !== currentScale) {
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const worldPos = {
+                    x: (centerX - viewport.position.x) / currentScale,
+                    y: (centerY - viewport.position.y) / currentScale
+                };
+                
+                currentScale = newScale;
+                viewport.scale.set(currentScale);
+                viewport.position.x = centerX - worldPos.x * currentScale;
+                viewport.position.y = centerY - worldPos.y * currentScale;
+            }
+        }
+
+        // PIXI.js 줌 아웃 함수
+        function zoomOutPIXI() {
+            const scaleFactor = 0.8;
+            const newScale = Math.max(0.1, currentScale * scaleFactor);
+            if (newScale !== currentScale) {
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const worldPos = {
+                    x: (centerX - viewport.position.x) / currentScale,
+                    y: (centerY - viewport.position.y) / currentScale
+                };
+                
+                currentScale = newScale;
+                viewport.scale.set(currentScale);
+                viewport.position.x = centerX - worldPos.x * currentScale;
+                viewport.position.y = centerY - worldPos.y * currentScale;
+            }
+        }
+
+        // PIXI.js 최적 뷰 리셋 함수
+        function resetToOptimalViewPIXI() {
+            // 네트워크 경계 계산
+            const bounds = calculateNetworkBounds();
+            const padding = 50;
+            const scaleX = (width - padding * 2) / bounds.width;
+            const scaleY = (height - padding * 2) / bounds.height;
+            const optimalScale = Math.min(scaleX, scaleY, 1); // 최대 1배까지
             
+            currentScale = optimalScale;
+            viewport.scale.set(currentScale);
+            
+            // 중앙 정렬
+            const centerX = bounds.centerX * currentScale;
+            const centerY = bounds.centerY * currentScale;
+            viewport.position.x = width / 2 - centerX;
+            viewport.position.y = height / 2 - centerY;
+        }
+
+        // PIXI.js 노드 검색 함수
+        function searchNodesPIXI(searchTerm) {
+            if (searchTerm === '') {
+                // 검색어가 비어있으면 모든 노드를 기본 상태로
+                nodes.forEach(node => {
+                    const nodeGraphic = nodeGraphics.get(node.id);
+                    if (nodeGraphic) {
+                        nodeGraphic.alpha = 1.0;
+                        nodeGraphic.tint = 0xffffff; // 기본 색상
+                    }
+                });
+            } else {
+                // 검색 결과 하이라이트
+                nodes.forEach(node => {
+                    const nodeGraphic = nodeGraphics.get(node.id);
+                    if (nodeGraphic) {
+                        if (node.id.toLowerCase().includes(searchTerm)) {
+                            // 매치되는 노드: 하이라이트
+                            nodeGraphic.alpha = 1.0;
+                            nodeGraphic.tint = 0xfbbf24; // 노란색 하이라이트
+                        } else {
+                            // 매치되지 않는 노드: 흐리게
+                            nodeGraphic.alpha = 0.3;
+                            nodeGraphic.tint = 0xffffff;
+                        }
+                    }
+                });
+            }
         }
         
 
-        // 통계 업데이트
+        // PIXI.js 통계 업데이트
         function updateStats() {
-            const visibleNodeCount = g.selectAll('.node').nodes().filter(node => {
-                return d3.select(node).style('display') !== 'none';
-            }).length;
+            let visibleNodeCount = 0;
+            nodes.forEach(node => {
+                const nodeGraphic = nodeGraphics.get(node.id);
+                if (nodeGraphic && nodeGraphic.visible) {
+                    visibleNodeCount++;
+                }
+            });
             
             document.getElementById('totalNodes').textContent = nodes.length.toLocaleString();
             document.getElementById('totalLinks').textContent = links.length.toLocaleString();
@@ -844,12 +1152,23 @@
             });
         }
         
-        // 서비스 선택 업데이트
+        // PIXI.js 서비스 선택 업데이트
         function updateServiceSelection() {
             if (selectedServices.size === 0 && !showSelectedOnly) {
-                // 모든 노드 표시
-                g.selectAll('.node').style('display', null);
-                g.selectAll('.link').style('display', null);
+                // 모든 노드와 링크 표시
+                nodes.forEach(node => {
+                    const nodeGraphic = nodeGraphics.get(node.id);
+                    if (nodeGraphic) {
+                        nodeGraphic.visible = true;
+                    }
+                });
+                
+                links.forEach((link, index) => {
+                    const linkGraphic = linkGraphics.get(index);
+                    if (linkGraphic) {
+                        linkGraphic.visible = true;
+                    }
+                });
             } else {
                 // 선택된 서비스와 관련된 노드만 표시
                 const visibleServiceNodes = new Set();
@@ -868,20 +1187,29 @@
                     }
                 });
                 
-                g.selectAll('.node')
-                    .style('display', d => {
-                        if (d.type === 'service') {
-                            return visibleServiceNodes.has(d.id) ? null : 'none';
+                // PIXI.js 노드 가시성 업데이트
+                nodes.forEach(node => {
+                    const nodeGraphic = nodeGraphics.get(node.id);
+                    if (nodeGraphic) {
+                        if (node.type === 'service') {
+                            nodeGraphic.visible = visibleServiceNodes.has(node.id);
                         } else {
-                            return visibleContractNodes.has(d.id) ? null : 'none';
+                            nodeGraphic.visible = visibleContractNodes.has(node.id);
                         }
-                    });
-                    
-                g.selectAll('.link')
-                    .style('display', d => visibleLinks.has(d) ? null : 'none');
+                    }
+                });
+                
+                // PIXI.js 링크 가시성 업데이트
+                links.forEach((link, index) => {
+                    const linkGraphic = linkGraphics.get(index);
+                    if (linkGraphic) {
+                        linkGraphic.visible = visibleLinks.has(link);
+                    }
+                });
             }
             
             updateServiceCount();
+            updateStats(); // 가시성 변경 후 통계 업데이트
         }
         
         // 서비스 카운트 업데이트
