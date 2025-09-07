@@ -743,7 +743,7 @@
         }
 
         .service-list {
-            max-height: 80vh !important;
+            max-height: 50vh !important;
             overflow-y: auto;
         }
 
