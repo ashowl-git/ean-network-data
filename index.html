@@ -6,6 +6,7 @@
     <title>EAN 계약 네트워크</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.2/dist/pixi.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <link rel="preload" href="styles.css?v=2024090701" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="styles.css?v=2024090701"></noscript>
     <style>
@@ -111,6 +112,18 @@
                                 <span class="stat-label">표시된 노드:</span>
                                 <span class="stat-value" id="visibleNodes">0</span>
                             </div>
+                            <div class="stat-item" id="selectedNodeInfo" style="display: none;">
+                                <span class="stat-label">선택된 노드:</span>
+                                <span class="stat-value" id="selectedNodeName">-</span>
+                            </div>
+                            <div class="stat-item" id="relatedCountInfo" style="display: none;">
+                                <span class="stat-label">관련 계약:</span>
+                                <span class="stat-value" id="relatedCount">0</span>
+                            </div>
+                            <div class="stat-item" id="linkCountInfo" style="display: none;">
+                                <span class="stat-label">연결 링크:</span>
+                                <span class="stat-value" id="linkCount">0</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -118,12 +131,12 @@
                 <div class="control-group">
                     <div class="inline-legend">
                         <div class="legend-item">
-                            <div class="legend-color" style="background: #3b82f6;"></div>
-                            <span>계약명</span>
+                            <div class="legend-color" style="background: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+                            <span style="font-weight: 600; font-size: 14px;">수행용역</span>
                         </div>
                         <div class="legend-item">
-                            <div class="legend-color" style="background: #047857;"></div>
-                            <span>수행용역</span>
+                            <div class="legend-color" style="background: #10b981; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+                            <span style="font-weight: 600; font-size: 14px;">계약명</span>
                         </div>
                     </div>
                 </div>
@@ -175,6 +188,40 @@
         let showSelectedOnly = false;
         let yearRange = { min: 2020, max: 2024 };
         let availableYears = [];
+
+        // EAN 테크놀로지 브랜드 컬러 팔레트 (홈페이지 삽입용 최적화)
+        const EAN_COLORS = {
+            // 메인 브랜드 컬러
+            primary_blue: 0x1e40af,      // EAN 메인 블루 #1e40af
+            primary_green: 0x059669,     // EAN 메인 그린 #059669
+            brand_white: 0xffffff,       // 브랜드 화이트
+            
+            // 서비스 노드 계열 (파란색 톤)
+            service_main: 0x3b82f6,      // 밝은 블루 #3b82f6
+            service_hover: 0x2563eb,     // 호버 블루 #2563eb
+            service_selected: 0x1d4ed8,  // 선택 블루 #1d4ed8
+            
+            // 계약 노드 계열 (녹색 톤)
+            contract_main: 0x10b981,     // 밝은 그린 #10b981
+            contract_hover: 0x059669,    // 호버 그린 #059669
+            contract_selected: 0x047857, // 선택 그린 #047857
+            
+            // UI 계층 컬러
+            background: 0xf8fafc,        // 아주 밝은 회색 배경
+            text_primary: 0x1f2937,      // 주요 텍스트 (진한 회색)
+            text_secondary: 0x6b7280,    // 보조 텍스트 (중간 회색)
+            text_muted: 0x9ca3af,        // 흐린 텍스트 (밝은 회색)
+            
+            // 링크 컬러
+            link_default: 0xe5e7eb,      // 기본 링크 #e5e7eb
+            link_active: 0x3b82f6,       // 활성 링크 (블루)
+            link_highlighted: 0x10b981,  // 강조 링크 (그린)
+            
+            // 강조 및 하이라이트
+            accent_gold: 0xf59e0b,       // 선택 강조 골드
+            accent_warning: 0xef4444,    // 경고/에러
+            accent_success: 0x10b981,    // 성공 (그린)
+        };
         let isSimulationRunning = false;
         
         // PIXI.js 관련 변수
@@ -186,11 +233,33 @@
         let lastTime = performance.now();
         let fps = 0;
 
-        // 색상 스키마 (수행용역 더 진한 녹색)
-        const colors = {
-            contract: '#3b82f6',
-            service: '#047857'  // 연결선보다 더 진한 녹색
-        };
+        // EAN 브랜드 기반 노드 색상 함수
+        function getNodeColor(node, state = 'default') {
+            const type = node.type;
+            
+            if (type === 'service') {
+                switch(state) {
+                    case 'hover': return EAN_COLORS.service_hover;
+                    case 'selected': return EAN_COLORS.service_selected;
+                    default: return EAN_COLORS.service_main;
+                }
+            } else { // contract
+                switch(state) {
+                    case 'hover': return EAN_COLORS.contract_hover;
+                    case 'selected': return EAN_COLORS.contract_selected;
+                    default: return EAN_COLORS.contract_main;
+                }
+            }
+        }
+
+        // 링크 색상 함수
+        function getLinkColor(state = 'default') {
+            switch(state) {
+                case 'active': return EAN_COLORS.link_active;
+                case 'highlighted': return EAN_COLORS.link_highlighted;
+                default: return EAN_COLORS.link_default;
+            }
+        }
 
         // 초기화
         document.addEventListener('DOMContentLoaded', async () => {
@@ -402,12 +471,15 @@
             viewport.scale.set(currentScale);
             viewport.position.set(width * 1.95 * currentScale, height * 1.95 * currentScale);
 
-            // D3.js force simulation 설정 (레이아웃 계산용)
+            // D3.js force simulation 설정 (5배 더 넓은 간격으로 설정)
             simulation = d3.forceSimulation()
-                .force('link', d3.forceLink().id(d => d.id).distance(180).strength(0.4))
-                .force('charge', d3.forceManyBody().strength(-800).distanceMax(1000))
+                .force('link', d3.forceLink().id(d => d.id).distance(1100).strength(0.2))  // 220 * 5 = 1100, 강도 더욱 감소
+                .force('charge', d3.forceManyBody().strength(-3000).distanceMax(4000))      // -600 * 5 = -3000, distanceMax * 5
                 .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(d => getNodeSize(d) + 10));
+                .force('collision', d3.forceCollide().radius(d => getNodeSize(d) + 75).strength(0.3))  // 15 * 5 = 75, 강도 더욱 감소
+                .alphaMin(0.001)        // 최소 알파값 설정 (더 빨리 안정화)
+                .alphaDecay(0.0228)     // 알파 감쇠율 증가 (더 빨리 안정화)
+                .velocityDecay(0.4);    // 속도 감쇠 설정 (움직임 빨리 멈춤)
 
             renderGraph();
             
@@ -528,34 +600,35 @@
             nodeGraphics.clear();
             linkGraphics.clear();
 
-            // 색상 변환 함수
+            // 색상 변환 함수 (더 이상 사용하지 않지만 호환성을 위해 유지)
             function hexToPixiColor(hex) {
                 return parseInt(hex.replace('#', '0x'));
             }
 
-            // 링크 렌더링 (PIXI Graphics)
+            // 링크 렌더링 (PIXI Graphics) - EAN 브랜드 컬러 적용
             console.log('링크 렌더링 중...');
             links.forEach((link, index) => {
                 const linkGraphic = new PIXI.Graphics();
-                linkGraphic.lineStyle(
-                    link.weight ? Math.sqrt(link.weight) + 1 : 1, 
-                    0x999999, 
-                    0.4
-                );
+                
+                // 링크 두께는 연결 강도에 따라, 색상은 EAN 브랜드 컬러로
+                const thickness = link.weight ? Math.sqrt(link.weight) + 1 : 1.5;
+                linkGraphic.lineStyle(thickness, getLinkColor('default'), 0.5); // EAN 기본 링크 색상
+                
                 linkGraphic.moveTo(0, 0).lineTo(100, 100); // 임시 위치, tick에서 업데이트
                 linkContainer.addChild(linkGraphic);
                 linkGraphics.set(index, linkGraphic);
             });
 
-            // 노드 렌더링 (PIXI Graphics)
+            // 노드 렌더링 (PIXI Graphics) - EAN 브랜드 컬러 적용
             console.log('노드 렌더링 중...');
             nodes.forEach((node, index) => {
                 const nodeGraphic = new PIXI.Graphics();
                 const radius = getNodeSize(node);
-                const fillColor = hexToPixiColor(colors[node.type]);
+                const fillColor = getNodeColor(node, 'default');
                 
+                // EAN 브랜드 스타일: 색상 노드 + 흰색 테두리
                 nodeGraphic.beginFill(fillColor);
-                nodeGraphic.lineStyle(1.5, 0xffffff);
+                nodeGraphic.lineStyle(2, EAN_COLORS.brand_white, 0.9); // 브랜드 화이트 테두리
                 nodeGraphic.drawCircle(0, 0, radius);
                 nodeGraphic.endFill();
                 
@@ -564,34 +637,42 @@
                 nodeGraphic.cursor = 'pointer';
                 nodeGraphic.userData = node;
                 
-                // 이벤트 리스너
+                // 이벤트 리스너 (향상된 호버 효과 포함)
                 nodeGraphic.on('pointerover', (event) => {
                     showTooltipPIXI(event, node);
+                    onNodeHover(nodeGraphic, node, true); // 호버 시작
                 });
-                nodeGraphic.on('pointerout', hideTooltip);
-                nodeGraphic.on('pointerdown', (event) => {
-                    event.stopPropagation();
-                    selectNode(node);
+                nodeGraphic.on('pointerout', (event) => {
+                    hideTooltip();
+                    onNodeHover(nodeGraphic, node, false); // 호버 종료
                 });
                 
-                // 드래그 이벤트 설정
+                // 드래그 이벤트 설정 (포함된 pointerup 핸들러가 클릭도 처리)
                 setupNodeDrag(nodeGraphic, node);
                 
                 nodeContainer.addChild(nodeGraphic);
                 nodeGraphics.set(node.id, nodeGraphic);
             });
 
-            // 텍스트 라벨 추가 (서비스 노드만)
+            // 텍스트 라벨 추가 (모든 노드에 추가 - 줌 레벨에 따라 표시)
             console.log('라벨 렌더링 중...');
-            const serviceNodes = nodes.filter(d => d.type === 'service');
-            serviceNodes.forEach(node => {
-                const text = new PIXI.Text(truncateText(node.id, 15), {
-                    fontSize: 10,
-                    fill: 0x333333,
-                    align: 'center'
+            nodes.forEach(node => {
+                // 텍스트 크기를 크게 하되 깔끔하게 (20px)
+                const baseFontSize = 20;
+                const text = new PIXI.Text(truncateText(node.id, 18), {
+                    fontSize: baseFontSize,
+                    fill: node.type === 'service' ? EAN_COLORS.text_primary : EAN_COLORS.text_secondary,
+                    align: 'center',
+                    fontWeight: 'bold',
+                    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    // stroke와 그림자 제거
                 });
                 text.anchor.set(0.5);
                 text.userData = node;
+                
+                // 초기 상태: 줌 레벨에 따라 표시 여부 결정
+                text.visible = shouldShowLabel(node, currentScale);
+                
                 nodeContainer.addChild(text);
                 
                 // 라벨 그래픽 맵에 저장 (업데이트용)
@@ -602,7 +683,7 @@
             console.log('PIXI.js 렌더링 완료:', {
                 linkElements: links.length,
                 nodeElements: nodes.length, 
-                labelElements: serviceNodes.length
+                labelElements: nodes.length
             });
 
             // 배경 클릭 시 선택 해제
@@ -616,18 +697,37 @@
             simulation.nodes(nodes);
             simulation.force('link').links(links);
 
-            // PIXI.js tick 함수 (고성능)
+            // PIXI.js tick 함수 (고성능 + 안정화 체크)
             simulation.on('tick', () => {
-                // 링크 위치 업데이트
+                // 시뮬레이션 안정화 체크
+                if (simulation.alpha() < 0.005) {
+                    simulation.stop();
+                    console.log('시뮬레이션 안정화로 인한 자동 정지');
+                    return;
+                }
+                // 링크 위치 업데이트 (선택 상태 유지)
                 links.forEach((link, index) => {
                     const linkGraphic = linkGraphics.get(index);
                     if (linkGraphic) {
                         linkGraphic.clear();
-                        linkGraphic.lineStyle(
-                            link.weight ? Math.sqrt(link.weight) + 1 : 1, 
-                            0x999999, 
-                            0.4
-                        );
+                        
+                        // 선택된 노드가 있는 경우 하이라이트 상태 유지
+                        if (selectedNode) {
+                            const isConnected = (link.source.id === selectedNode.id || link.target.id === selectedNode.id);
+                            if (isConnected) {
+                                linkGraphic.lineStyle(3, EAN_COLORS.link_highlighted, 1.0);
+                            } else {
+                                linkGraphic.lineStyle(1, EAN_COLORS.text_muted, 0.08);
+                            }
+                        } else {
+                            // 기본 상태
+                            linkGraphic.lineStyle(
+                                link.weight ? Math.sqrt(link.weight) + 1 : 1, 
+                                0x999999, 
+                                0.4
+                            );
+                        }
+                        
                         linkGraphic.moveTo(link.source.x, link.source.y);
                         linkGraphic.lineTo(link.target.x, link.target.y);
                     }
@@ -640,12 +740,10 @@
                         nodeGraphic.position.set(node.x, node.y);
                     }
                     
-                    // 라벨 위치 업데이트 (서비스 노드만)
-                    if (node.type === 'service') {
-                        const labelGraphic = nodeGraphics.get(`label_${node.id}`);
-                        if (labelGraphic) {
-                            labelGraphic.position.set(node.x, node.y + getNodeSize(node) + 12);
-                        }
+                    // 라벨 위치 업데이트 (모든 노드) - 더 큰 간격으로
+                    const labelGraphic = nodeGraphics.get(`label_${node.id}`);
+                    if (labelGraphic) {
+                        labelGraphic.position.set(node.x, node.y + getNodeSize(node) + 20);
                     }
                 });
             });
@@ -674,42 +772,71 @@
 
         // PIXI.js 노드 드래그 설정
         function setupNodeDrag(nodeGraphic, nodeData) {
-            let isDragging = false;
+            // 드래그 상태를 노드 그래픽에 저장
+            nodeGraphic._dragData = {
+                isDragging: false,
+                dragStartPos: null
+            };
             
             nodeGraphic.on('pointerdown', (event) => {
-                isDragging = true;
+                nodeGraphic._dragData.dragStartPos = { x: event.data.global.x, y: event.data.global.y };
+                nodeGraphic._dragData.isDragging = false; // 아직 드래그 시작 안함
                 nodeGraphic.alpha = 0.8;
                 if (!event.data.originalEvent.shiftKey) {
-                    simulation.alphaTarget(0.3).restart();
+                    simulation.alphaTarget(0.1).restart(); // 더 부드러운 재시작
                 }
             });
             
             nodeGraphic.on('pointermove', (event) => {
-                if (isDragging) {
-                    const position = event.data.getLocalPosition(viewport);
-                    nodeData.fx = position.x;
-                    nodeData.fy = position.y;
+                const dragData = nodeGraphic._dragData;
+                if (dragData.dragStartPos) {
+                    const dx = event.data.global.x - dragData.dragStartPos.x;
+                    const dy = event.data.global.y - dragData.dragStartPos.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // 5픽셀 이상 움직이면 드래그로 인식
+                    if (distance > 5) {
+                        dragData.isDragging = true;
+                        console.log('드래그 시작:', nodeData.id); // 디버깅용
+                        
+                        const position = event.data.getLocalPosition(viewport);
+                        nodeData.fx = position.x;
+                        nodeData.fy = position.y;
+                    }
                 }
             });
             
-            nodeGraphic.on('pointerup', () => {
-                if (isDragging) {
-                    isDragging = false;
+            nodeGraphic.on('pointerup', (event) => {
+                const dragData = nodeGraphic._dragData;
+                
+                if (dragData.isDragging) {
+                    // 드래그 종료 처리
+                    dragData.isDragging = false;
                     nodeGraphic.alpha = 1.0;
-                    if (!simulation.alphaTarget()) simulation.alphaTarget(0);
+                    simulation.alphaTarget(0.01).alphaDecay(0.05); // 부드럽게 감속
                     nodeData.fx = null;
                     nodeData.fy = null;
+                    console.log('드래그 종료:', nodeData.id); // 디버깅용
+                } else {
+                    // 클릭 처리 (드래그가 아닐 때만)
+                    event.stopPropagation();
+                    console.log('🖱️ 노드 클릭 감지:', nodeData.id, nodeData.type);
+                    selectNode(nodeData);
+                    console.log('✅ selectNode 호출 완료'); // 디버깅용
                 }
+                dragData.dragStartPos = null;
             });
             
             nodeGraphic.on('pointerupoutside', () => {
-                if (isDragging) {
-                    isDragging = false;
+                const dragData = nodeGraphic._dragData;
+                if (dragData.isDragging) {
+                    dragData.isDragging = false;
                     nodeGraphic.alpha = 1.0;
                     if (!simulation.alphaTarget()) simulation.alphaTarget(0);
                     nodeData.fx = null;
                     nodeData.fy = null;
                 }
+                dragData.dragStartPos = null;
             });
         }
 
@@ -721,6 +848,189 @@
         // 텍스트 자르기
         function truncateText(text, maxLength) {
             return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        // 줌 레벨에 따른 스마트 텍스트 표시 판단 (더 많이 보이게 수정)
+        function shouldShowLabel(node, zoomLevel) {
+            const connections = node.connections || 0;
+            
+            // 줌 < 0.1: 텍스트 완전 숨김
+            if (zoomLevel < 0.1) {
+                return false;
+            }
+            
+            // 줌 0.1-0.3: 서비스 노드와 주요 계약 노드만 표시
+            if (zoomLevel >= 0.1 && zoomLevel < 0.3) {
+                return node.type === 'service' || connections >= 5;
+            }
+            
+            // 줌 0.3-0.7: 더 많은 노드 표시
+            if (zoomLevel >= 0.3 && zoomLevel < 0.7) {
+                return node.type === 'service' || connections >= 2;
+            }
+            
+            // 줌 0.7 이상: 거의 모든 노드 표시
+            return true;
+        }
+
+        // 줌 레벨에 따른 텍스트 크기 조정
+        function getTextSizeForZoom(baseSize, zoomLevel) {
+            if (zoomLevel > 2.0) {
+                // 줌 2.0 이상일 때 텍스트 크기 확대
+                return Math.min(baseSize * 1.5, baseSize * (zoomLevel * 0.5));
+            }
+            return baseSize;
+        }
+
+        // 모든 라벨의 표시 상태 업데이트
+        function updateLabelsVisibility() {
+            nodes.forEach(node => {
+                const labelGraphic = nodeGraphics.get(`label_${node.id}`);
+                if (labelGraphic) {
+                    labelGraphic.visible = shouldShowLabel(node, currentScale);
+                    
+                    // 줌 레벨에 따른 텍스트 크기 조정
+                    const newSize = getTextSizeForZoom(14, currentScale);
+                    if (labelGraphic.style.fontSize !== newSize) {
+                        labelGraphic.style.fontSize = newSize;
+                    }
+                }
+            });
+        }
+
+        // 노드 호버 효과 (시각적 피드백 향상)
+        function onNodeHover(nodeGraphic, node, isHovering) {
+            const labelGraphic = nodeGraphics.get(`label_${node.id}`);
+            
+            if (isHovering) {
+                // 호버 시작 - 부드러운 확대 효과
+                gsap.to(nodeGraphic.scale, {
+                    x: 1.2,
+                    y: 1.2,
+                    duration: 0.2,
+                    ease: "power2.out"
+                });
+                
+                // 노드 글로우 효과
+                gsap.to(nodeGraphic, {
+                    alpha: 0.9,
+                    duration: 0.2
+                });
+                
+                // 텍스트 라벨 강조
+                if (labelGraphic && labelGraphic.visible) {
+                    gsap.to(labelGraphic.scale, {
+                        x: 1.15,
+                        y: 1.15,
+                        duration: 0.2,
+                        ease: "power2.out"
+                    });
+                    
+                    // 텍스트 색상 강조 - EAN 브랜드 컬러
+                    const originalFill = labelGraphic.style.fill;
+                    labelGraphic._originalFill = originalFill;
+                    labelGraphic.style.fill = node.type === 'service' ? EAN_COLORS.service_hover : EAN_COLORS.contract_hover; // EAN 호버 색상
+                }
+                
+            } else {
+                // 호버 종료 - 원래 상태로 복원
+                gsap.to(nodeGraphic.scale, {
+                    x: 1.0,
+                    y: 1.0,
+                    duration: 0.2,
+                    ease: "power2.out"
+                });
+                
+                gsap.to(nodeGraphic, {
+                    alpha: 1.0,
+                    duration: 0.2
+                });
+                
+                // 텍스트 라벨 원래 크기로 복원
+                if (labelGraphic && labelGraphic.visible) {
+                    gsap.to(labelGraphic.scale, {
+                        x: 1.0,
+                        y: 1.0,
+                        duration: 0.2,
+                        ease: "power2.out"
+                    });
+                    
+                    // 텍스트 색상 원래대로 복원
+                    if (labelGraphic._originalFill) {
+                        labelGraphic.style.fill = labelGraphic._originalFill;
+                    }
+                }
+            }
+        }
+
+        // 클릭 시 노드 텍스트 확장 시스템 (배경 박스 제거)
+        function expandNodeText(labelGraphic, node) {
+            if (!labelGraphic) return;
+            
+            // 원래 텍스트 저장
+            const originalText = labelGraphic.text;
+            const fullText = node.id; // 풀 텍스트 (truncate 없이)
+            
+            // 텍스트가 잘렸을 때만 확장
+            if (fullText.length > originalText.length) {
+                // 풀 텍스트로 업데이트
+                labelGraphic.text = fullText;
+                labelGraphic._isExpanded = true;
+                labelGraphic._originalText = originalText;
+            }
+            
+            // 시각적 강조 효과 (배경 없이 텍스트만 강조)
+            if (labelGraphic.visible) {
+                // 텍스트 강조 애니메이션
+                gsap.to(labelGraphic.scale, {
+                    x: 1.15,
+                    y: 1.15,
+                    duration: 0.3,
+                    ease: "back.out(1.7)"
+                });
+                
+                gsap.to(labelGraphic, {
+                    alpha: 1.0,
+                    duration: 0.3
+                });
+                
+                // 텍스트 색상을 붉은색 하이라이트로 변경
+                labelGraphic.style.fill = 0xff0000; // 붉은색 하이라이트
+                labelGraphic.style.fontWeight = 'bold';
+            }
+        }
+
+        // 텍스트 확장 해제 (선택 해제 시)
+        function restoreAllNodeTexts() {
+            nodes.forEach(node => {
+                const labelGraphic = nodeGraphics.get(`label_${node.id}`);
+                if (labelGraphic && labelGraphic._isExpanded) {
+                    // 원래 텍스트로 복원
+                    if (labelGraphic._originalText) {
+                        labelGraphic.text = labelGraphic._originalText;
+                    }
+                    
+                    // 텍스트 상태 복원
+                    gsap.to(labelGraphic.scale, {
+                        x: 1.0,
+                        y: 1.0,
+                        duration: 0.2
+                    });
+                    
+                    gsap.to(labelGraphic, {
+                        alpha: 1.0,
+                        duration: 0.2
+                    });
+                    
+                    // 원래 색상 복원 - EAN 브랜드 색상
+                    labelGraphic.style.fill = node.type === 'service' ? EAN_COLORS.text_primary : EAN_COLORS.text_secondary;
+                    labelGraphic.style.fontWeight = 'bold';
+                    
+                    // 플래그 제거
+                    labelGraphic._isExpanded = false;
+                    labelGraphic._originalText = null;
+                }
+            });
         }
 
         // 네트워크 경계 계산
@@ -789,52 +1099,291 @@
         }
 
         function hideTooltip() {
-            document.getElementById('tooltip').classList.remove('visible');
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.display = 'none';
         }
 
         function selectNode(targetNode) {
+            console.log('🔥 selectNode 함수 호출됨:', targetNode.id, targetNode.type);
             selectedNode = targetNode;
             
             const connectedNodes = new Set([targetNode.id]);
             const connectedLinks = new Set();
+            const connectedNodesList = [];
             
             links.forEach(link => {
                 if (link.source.id === targetNode.id || link.target.id === targetNode.id) {
                     connectedNodes.add(link.source.id);
                     connectedNodes.add(link.target.id);
                     connectedLinks.add(link);
-                }
-            });
-
-            // PIXI.js 노드 하이라이트
-            nodes.forEach(node => {
-                const nodeGraphic = nodeGraphics.get(node.id);
-                if (nodeGraphic) {
-                    if (connectedNodes.has(node.id)) {
-                        nodeGraphic.alpha = 1.0;
-                        nodeGraphic.tint = 0xffffff;
-                    } else {
-                        nodeGraphic.alpha = 0.3;
-                        nodeGraphic.tint = 0x888888;
+                    
+                    // 연결된 노드들을 리스트에 추가 (선택된 노드 제외)
+                    if (link.source.id !== targetNode.id) {
+                        connectedNodesList.push(link.source);
+                    }
+                    if (link.target.id !== targetNode.id) {
+                        connectedNodesList.push(link.target);
                     }
                 }
             });
 
-            // PIXI.js 링크 하이라이트
+            // 방사형 재배치는 일시적으로 비활성화 (너무 격렬한 움직임 방지)
+            // arrangeConnectedNodesRadially(targetNode, connectedNodesList);
+
+            // PIXI.js 노드 하이라이트 (노드 색상 직접 변경으로 명확한 시각적 구분)
+            nodes.forEach(node => {
+                const nodeGraphic = nodeGraphics.get(node.id);
+                const labelGraphic = nodeGraphics.get(`label_${node.id}`);
+                
+                if (nodeGraphic) {
+                    // 기존 그래픽을 클리어하고 새로 그리기
+                    nodeGraphic.clear();
+                    const radius = getNodeSize(node);
+                    
+                    if (node.id === targetNode.id) {
+                        // 선택된 노드: 원본 색상 유지하되 더 진하게
+                        console.log('🎯 선택된 노드 강조:', node.id);
+                        const fillColor = getNodeColor(node, 'selected');
+                        nodeGraphic.beginFill(fillColor);
+                        nodeGraphic.lineStyle(4, 0xff0000, 1.0); // 붉은색 테두리로 하이라이트
+                        nodeGraphic.drawCircle(0, 0, radius + 3);
+                        nodeGraphic.endFill();
+                        nodeGraphic.alpha = 1.0;
+                        nodeGraphic.scale.set(1.3); // 30% 크게
+                        
+                        // 인터랙티브 속성 및 이벤트 재설정
+                        nodeGraphic.interactive = true;
+                        nodeGraphic.cursor = 'pointer';
+                        nodeGraphic.userData = node;
+                        
+                        // 이벤트 리스너 재설정
+                        nodeGraphic.removeAllListeners();
+                        nodeGraphic.on('pointerover', (event) => {
+                            showTooltipPIXI(event, node);
+                            onNodeHover(nodeGraphic, node, true);
+                        });
+                        nodeGraphic.on('pointerout', (event) => {
+                            hideTooltip();
+                            onNodeHover(nodeGraphic, node, false);
+                        });
+                        setupNodeDrag(nodeGraphic, node);
+                        
+                        // 선택된 노드 텍스트 확장 및 강조
+                        expandNodeText(labelGraphic, node);
+                        
+                        console.log(`선택된 노드 "${node.id}" 골드 색상으로 변경됨`);
+                        
+                    } else if (connectedNodes.has(node.id)) {
+                        // 연결된 노드: 원본 색상 유지하되 붉은 테두리 추가
+                        console.log('🟢 연결된 노드 강조:', node.id);
+                        const fillColor = getNodeColor(node, 'default');
+                        nodeGraphic.beginFill(fillColor);
+                        nodeGraphic.lineStyle(3, 0xff0000, 0.8); // 붉은색 테두리로 하이라이트
+                        nodeGraphic.drawCircle(0, 0, radius + 1);
+                        nodeGraphic.endFill();
+                        nodeGraphic.alpha = 1.0;
+                        nodeGraphic.scale.set(1.1); // 10% 크게
+                        
+                        // 인터랙티브 속성 및 이벤트 재설정
+                        nodeGraphic.interactive = true;
+                        nodeGraphic.cursor = 'pointer';
+                        nodeGraphic.userData = node;
+                        
+                        // 이벤트 리스너 재설정
+                        nodeGraphic.removeAllListeners();
+                        nodeGraphic.on('pointerover', (event) => {
+                            showTooltipPIXI(event, node);
+                            onNodeHover(nodeGraphic, node, true);
+                        });
+                        nodeGraphic.on('pointerout', (event) => {
+                            hideTooltip();
+                            onNodeHover(nodeGraphic, node, false);
+                        });
+                        setupNodeDrag(nodeGraphic, node);
+                        
+                        // 연결된 노드 텍스트에도 붉은 하이라이트 적용
+                        if (labelGraphic && labelGraphic.visible) {
+                            gsap.to(labelGraphic, {
+                                alpha: 1.0,
+                                duration: 0.3
+                            });
+                            gsap.to(labelGraphic.scale, {
+                                x: 1.1,
+                                y: 1.1,
+                                duration: 0.3
+                            });
+                            // 연결된 노드 텍스트도 붉은색으로
+                            labelGraphic.style.fill = 0xff0000; // 붉은색 하이라이트
+                        }
+                        
+                        console.log(`연결된 노드 "${node.id}" 강조 색상으로 변경됨`);
+                        
+                    } else {
+                        // 관련 없는 노드: 원본 색상이지만 아주 흐리게
+                        console.log('⚫ 관련없는 노드 흐리게 처리:', node.id);
+                        const fillColor = getNodeColor(node, 'default');
+                        nodeGraphic.beginFill(fillColor);
+                        nodeGraphic.lineStyle(1, 0xcccccc, 0.3);
+                        nodeGraphic.drawCircle(0, 0, radius);
+                        nodeGraphic.endFill();
+                        nodeGraphic.alpha = 0.2; // 아주 흐리게 (노드 자체를 흐리게)
+                        nodeGraphic.scale.set(0.8); // 크기도 작게
+                        
+                        // 인터랙티브 속성 및 이벤트 재설정
+                        nodeGraphic.interactive = true;
+                        nodeGraphic.cursor = 'pointer';
+                        nodeGraphic.userData = node;
+                        
+                        // 이벤트 리스너 재설정
+                        nodeGraphic.removeAllListeners();
+                        nodeGraphic.on('pointerover', (event) => {
+                            showTooltipPIXI(event, node);
+                            onNodeHover(nodeGraphic, node, true);
+                        });
+                        nodeGraphic.on('pointerout', (event) => {
+                            hideTooltip();
+                            onNodeHover(nodeGraphic, node, false);
+                        });
+                        setupNodeDrag(nodeGraphic, node);
+                        
+                        // 관련 없는 노드 텍스트도 더 흐리게 (색상도 회색으로)
+                        if (labelGraphic && labelGraphic.visible) {
+                            gsap.to(labelGraphic, {
+                                alpha: 0.3,
+                                duration: 0.3
+                            });
+                            gsap.to(labelGraphic.scale, {
+                                x: 0.9,
+                                y: 0.9,
+                                duration: 0.3
+                            });
+                            // 관련 없는 텍스트는 회색으로
+                            labelGraphic.style.fill = 0x888888; // 회색
+                        }
+                        
+                        console.log(`관련 없는 노드 "${node.id}" 회색으로 변경됨`);
+                    }
+                }
+            });
+
+            // PIXI.js 링크 하이라이트 - EAN 브랜드 컬러
             links.forEach((link, index) => {
                 const linkGraphic = linkGraphics.get(index);
                 if (linkGraphic) {
                     if (connectedLinks.has(link)) {
-                        linkGraphic.alpha = 0.8;
-                        linkGraphic.tint = 0xffffff;
+                        linkGraphic.alpha = 1.0;
+                        linkGraphic.tint = EAN_COLORS.link_highlighted; // EAN 강조 링크 (그린)
+                        // 연결된 링크를 더 두껍게 표시
+                        linkGraphic.clear();
+                        linkGraphic.lineStyle(
+                            3, // 두께 증가
+                            EAN_COLORS.link_highlighted, 
+                            1.0 // 완전 불투명
+                        );
+                        linkGraphic.moveTo(link.source.x, link.source.y);
+                        linkGraphic.lineTo(link.target.x, link.target.y);
                     } else {
-                        linkGraphic.alpha = 0.1;
-                        linkGraphic.tint = 0x888888;
+                        linkGraphic.alpha = 0.08; // 더 흐리게
+                        linkGraphic.tint = EAN_COLORS.text_muted; // EAN 흐린 색상
                     }
                 }
             });
 
             document.getElementById('clearSelection').classList.add('visible');
+            
+            // 선택된 노드 정보 표시
+            const selectedNodeInfo = document.getElementById('selectedNodeInfo');
+            const selectedNodeName = document.getElementById('selectedNodeName');
+            const relatedCountInfo = document.getElementById('relatedCountInfo');
+            const relatedCount = document.getElementById('relatedCount');
+            const linkCountInfo = document.getElementById('linkCountInfo');
+            const linkCountElement = document.getElementById('linkCount');
+            
+            // 선택된 노드 이름 표시 (최대 20자)
+            const displayName = targetNode.id.length > 20 ? targetNode.id.substring(0, 20) + '...' : targetNode.id;
+            selectedNodeName.textContent = displayName;
+            selectedNodeInfo.style.display = 'block';
+            
+            // 연결된 링크 개수 계산 및 표시
+            const totalConnectedLinks = connectedLinks.size;
+            linkCountElement.textContent = `${totalConnectedLinks}개`;
+            linkCountInfo.style.display = 'block';
+            
+            // 관련 노드 개수 표시 (수행용역 선택시에만 계약 개수를 표시)
+            console.log('선택된 노드 정보:', {
+                nodeId: targetNode.id,
+                nodeType: targetNode.type,
+                connectedNodesCount: connectedNodes.size,
+                connectedLinksCount: connectedLinks.size,
+                connectedNodesList: connectedNodesList.length
+            });
+            
+            if (targetNode.type === 'service') {
+                const relatedContracts = connectedNodesList.filter(node => node.type === 'contract').length;
+                relatedCount.textContent = `${relatedContracts}개`;
+                relatedCountInfo.querySelector('.stat-label').textContent = '관련 계약:';
+                relatedCountInfo.style.display = 'block';
+                
+                console.log(`✅ 수행용역 "${targetNode.id}" 선택: ${relatedContracts}개 계약, ${totalConnectedLinks}개 링크와 연결됨`);
+                console.log('UI 요소 표시 상태:', {
+                    selectedNodeInfo: selectedNodeInfo.style.display,
+                    relatedCountInfo: relatedCountInfo.style.display,
+                    linkCountInfo: linkCountInfo.style.display
+                });
+            } else if (targetNode.type === 'contract') {
+                const relatedServices = connectedNodesList.filter(node => node.type === 'service').length;
+                relatedCount.textContent = `${relatedServices}개`;
+                relatedCountInfo.querySelector('.stat-label').textContent = '관련 용역:';
+                relatedCountInfo.style.display = 'block';
+                
+                console.log(`✅ 계약명 "${targetNode.id}" 선택: ${relatedServices}개 수행용역, ${totalConnectedLinks}개 링크와 연결됨`);
+                console.log('UI 요소 표시 상태:', {
+                    selectedNodeInfo: selectedNodeInfo.style.display,
+                    relatedCountInfo: relatedCountInfo.style.display,
+                    linkCountInfo: linkCountInfo.style.display
+                });
+            } else {
+                relatedCountInfo.style.display = 'none';
+                console.log('❌ 알 수 없는 노드 타입:', targetNode.type);
+            }
+            
+            // 노드 선택 시 라벨 업데이트 (줌 1.5-2.5 레벨에서 선택된 노드 주변만 표시)
+            updateLabelsVisibility();
+        }
+
+        // 연결된 노드들을 선택 노드 중심으로 방사형 재배치
+        function arrangeConnectedNodesRadially(centerNode, connectedNodes) {
+            if (!connectedNodes || connectedNodes.length === 0) return;
+            
+            const centerX = centerNode.x;
+            const centerY = centerNode.y;
+            const radius = 60; // 방사형 배치 반지름 (120 → 60으로 절반 감소)
+            const angleStep = (2 * Math.PI) / connectedNodes.length;
+            
+            connectedNodes.forEach((node, index) => {
+                const angle = index * angleStep;
+                
+                // 방사형 위치 계산
+                const targetX = centerX + Math.cos(angle) * radius;
+                const targetY = centerY + Math.sin(angle) * radius;
+                
+                // 부드러운 애니메이션을 위해 force를 사용하여 이동
+                node.fx = targetX;
+                node.fy = targetY;
+                
+                // 0.5초 후에 고정 해제 (자연스러운 settling 허용)
+                setTimeout(() => {
+                    if (node.fx === targetX && node.fy === targetY) {
+                        node.fx = null;
+                        node.fy = null;
+                    }
+                }, 500);
+            });
+            
+            // 시뮬레이션 재시작하여 새로운 위치로 이동 (더 부드럽게)
+            if (simulation) {
+                simulation.alpha(0.1).restart(); // 0.3 → 0.1로 줄여서 더 부드러운 이동
+            }
         }
 
         function clearSelection() {
@@ -842,14 +1391,62 @@
             selectedServices.clear();
             showSelectedOnly = false;
             
-            // PIXI.js 노드 상태 초기화
+            // 텍스트 확장 상태 복원
+            restoreAllNodeTexts();
+            
+            // PIXI.js 노드 상태 초기화 및 고정 위치 해제
             nodes.forEach(node => {
                 const nodeGraphic = nodeGraphics.get(node.id);
+                const labelGraphic = nodeGraphics.get(`label_${node.id}`);
+                
                 if (nodeGraphic) {
+                    // 노드를 원래 색상과 상태로 복원
+                    nodeGraphic.clear();
+                    const radius = getNodeSize(node);
+                    const fillColor = getNodeColor(node, 'default');
+                    
+                    nodeGraphic.beginFill(fillColor);
+                    nodeGraphic.lineStyle(2, EAN_COLORS.brand_white, 0.9);
+                    nodeGraphic.drawCircle(0, 0, radius);
+                    nodeGraphic.endFill();
                     nodeGraphic.alpha = 1.0;
-                    nodeGraphic.tint = 0xffffff;
                     nodeGraphic.visible = true;
+                    nodeGraphic.scale.set(1.0); // 스케일 초기화
+                    
+                    // 인터랙티브 속성 및 이벤트 재설정
+                    nodeGraphic.interactive = true;
+                    nodeGraphic.cursor = 'pointer';
+                    nodeGraphic.userData = node;
+                    
+                    // 이벤트 리스너 재설정
+                    nodeGraphic.removeAllListeners();
+                    nodeGraphic.on('pointerover', (event) => {
+                        showTooltipPIXI(event, node);
+                        onNodeHover(nodeGraphic, node, true);
+                    });
+                    nodeGraphic.on('pointerout', (event) => {
+                        hideTooltip();
+                        onNodeHover(nodeGraphic, node, false);
+                    });
+                    setupNodeDrag(nodeGraphic, node);
                 }
+                
+                // 라벨 상태도 초기화
+                if (labelGraphic && labelGraphic.visible) {
+                    gsap.to(labelGraphic, {
+                        alpha: 1.0,
+                        duration: 0.2
+                    });
+                    gsap.to(labelGraphic.scale, {
+                        x: 1.0,
+                        y: 1.0,
+                        duration: 0.2
+                    });
+                }
+                
+                // 강제로 고정된 위치 해제
+                node.fx = null;
+                node.fy = null;
             });
 
             // PIXI.js 링크 상태 초기화
@@ -863,6 +1460,17 @@
             });
 
             document.getElementById('clearSelection').classList.remove('visible');
+            
+            // 선택된 노드 정보 숨기기
+            document.getElementById('selectedNodeInfo').style.display = 'none';
+            document.getElementById('relatedCountInfo').style.display = 'none';
+            document.getElementById('linkCountInfo').style.display = 'none';
+            
+            // 관련 용역 라벨 원래대로 복원
+            document.getElementById('relatedCountInfo').querySelector('.stat-label').textContent = '관련 계약:';
+            
+            // 선택 해제 시 라벨 업데이트
+            updateLabelsVisibility();
         }
 
         // 드래그 이벤트
@@ -912,6 +1520,9 @@
                 viewport.scale.set(currentScale);
                 viewport.position.x = centerX - worldPos.x * currentScale;
                 viewport.position.y = centerY - worldPos.y * currentScale;
+                
+                updateLabelsVisibility(); // 줌 변경 시 라벨 업데이트
+                console.log('줌 인:', currentScale);
             }
         }
 
@@ -931,6 +1542,9 @@
                 viewport.scale.set(currentScale);
                 viewport.position.x = centerX - worldPos.x * currentScale;
                 viewport.position.y = centerY - worldPos.y * currentScale;
+                
+                updateLabelsVisibility(); // 줌 변경 시 라벨 업데이트
+                console.log('줌 아웃:', currentScale);
             }
         }
 
@@ -951,6 +1565,9 @@
             const centerY = bounds.centerY * currentScale;
             viewport.position.x = width / 2 - centerX;
             viewport.position.y = height / 2 - centerY;
+            
+            updateLabelsVisibility(); // 줌 변경 시 라벨 업데이트
+            console.log('리셋 줌:', currentScale);
         }
 
         // PIXI.js 노드 검색 함수
@@ -961,7 +1578,7 @@
                     const nodeGraphic = nodeGraphics.get(node.id);
                     if (nodeGraphic) {
                         nodeGraphic.alpha = 1.0;
-                        nodeGraphic.tint = 0xffffff; // 기본 색상
+                        nodeGraphic.tint = EAN_COLORS.brand_white; // EAN 기본 색상 (브랜드 화이트)
                     }
                 });
             } else {
@@ -970,13 +1587,13 @@
                     const nodeGraphic = nodeGraphics.get(node.id);
                     if (nodeGraphic) {
                         if (node.id.toLowerCase().includes(searchTerm)) {
-                            // 매치되는 노드: 하이라이트
+                            // 매치되는 노드: EAN 골드 하이라이트
                             nodeGraphic.alpha = 1.0;
-                            nodeGraphic.tint = 0xfbbf24; // 노란색 하이라이트
+                            nodeGraphic.tint = EAN_COLORS.accent_gold; // EAN 골드 하이라이트
                         } else {
                             // 매치되지 않는 노드: 흐리게
                             nodeGraphic.alpha = 0.3;
-                            nodeGraphic.tint = 0xffffff;
+                            nodeGraphic.tint = EAN_COLORS.brand_white; // EAN 브랜드 화이트
                         }
                     }
                 });
