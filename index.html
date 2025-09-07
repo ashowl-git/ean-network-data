@@ -376,7 +376,7 @@
             svg.call(zoom);
 
             // 초기 줌 레벨을 0.4로 설정 (줌 아웃된 상태에서 시작)
-            const initialZoom = d3.zoomIdentity.scale(0.2).translate(width * 0.95, height * 0.95);
+            const initialZoom = d3.zoomIdentity.scale(0.2).translate(width * 1.95, height * 1.95);
             svg.call(zoom.transform, initialZoom);
             currentScale = 0.2;
 
