@@ -378,7 +378,7 @@
             // 초기 줌 레벨을 0.4로 설정 (줌 아웃된 상태에서 시작)
             const initialZoom = d3.zoomIdentity.scale(0.3).translate(width * 0.2, height * 0.2);
             svg.call(zoom.transform, initialZoom);
-            currentScale = 0.4;
+            currentScale = 0.3;
 
             // 시뮬레이션 설정 (STARFIELD 계수 사용)
             simulation = d3.forceSimulation()
