@@ -375,6 +375,11 @@
 
             svg.call(zoom);
 
+            // 초기 줌 레벨을 0.4로 설정 (줌 아웃된 상태에서 시작)
+            const initialZoom = d3.zoomIdentity.scale(0.4).translate(width * 0.15, height * 0.15);
+            svg.call(zoom.transform, initialZoom);
+            currentScale = 0.4;
+
             // 시뮬레이션 설정 (STARFIELD 계수 사용)
             simulation = d3.forceSimulation()
                 .force('link', d3.forceLink().id(d => d.id).distance(180).strength(0.4))
@@ -495,6 +500,60 @@
             return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
         }
 
+        // 네트워크 경계 계산
+        function calculateNetworkBounds() {
+            if (!nodes || nodes.length === 0) return null;
+            
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+            
+            nodes.forEach(node => {
+                if (node.x !== undefined && node.y !== undefined) {
+                    minX = Math.min(minX, node.x);
+                    maxX = Math.max(maxX, node.x);
+                    minY = Math.min(minY, node.y);
+                    maxY = Math.max(maxY, node.y);
+                }
+            });
+            
+            return {
+                minX, maxX, minY, maxY,
+                width: maxX - minX,
+                height: maxY - minY,
+                centerX: (minX + maxX) / 2,
+                centerY: (minY + maxY) / 2
+            };
+        }
+
+        // 전체 네트워크를 보기 위한 최적 줌 레벨 계산
+        function getOptimalZoomTransform() {
+            const bounds = calculateNetworkBounds();
+            if (!bounds) return d3.zoomIdentity;
+            
+            // 여백을 고려한 스케일 계산 (화면의 80% 사용)
+            const padding = 100;
+            const scaleX = (width - padding * 2) / bounds.width;
+            const scaleY = (height - padding * 2) / bounds.height;
+            const scale = Math.min(scaleX, scaleY, 1); // 최대 1배까지만
+            
+            // 중앙 정렬을 위한 translate 계산
+            const translateX = width / 2 - bounds.centerX * scale;
+            const translateY = height / 2 - bounds.centerY * scale;
+            
+            return d3.zoomIdentity
+                .translate(translateX, translateY)
+                .scale(scale);
+        }
+
+        // 전체 보기로 리셋
+        function resetToOptimalView() {
+            const optimalTransform = getOptimalZoomTransform();
+            svg.transition()
+                .duration(750)
+                .ease(d3.easeQuadOut)
+                .call(zoom.transform, optimalTransform);
+        }
+
         // 나머지 함수들은 기존과 동일하게 유지...
         // (타임라인, 서비스 브라우저, 이벤트 리스너 등은 기존 코드 사용)
 
@@ -592,7 +651,7 @@
             });
 
             document.getElementById('resetZoom').addEventListener('click', () => {
-                svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+                resetToOptimalView();
             });
 
             // 선택 해제 버튼
