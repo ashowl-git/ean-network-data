@@ -515,7 +515,8 @@
             // 콘솔에 성능 정보 출력
             console.log(`FPS: ${fps}, Nodes: ${nodes.length}, Links: ${links.length}, WebGL: ${app.renderer.type === 1 ? 'Yes' : 'No'}`);
             
-            // 페이지에 성능 정보 표시 (개발자용)
+            // 페이지에 성능 정보 표시 (개발자용) - 주석 처리로 화면 표시 비활성화
+            /*
             if (!document.getElementById('performance-stats')) {
                 const perfDiv = document.createElement('div');
                 perfDiv.id = 'performance-stats';
@@ -540,6 +541,7 @@
                 WebGL: ${app.renderer.type === 1 ? 'Yes' : 'No'}<br>
                 Scale: ${currentScale.toFixed(2)}
             `;
+            */
         }
 
         // PIXI.js 인터랙션 설정
