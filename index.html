@@ -763,17 +763,6 @@
                         </div>
                     </section>
                     
-                    <section class="control-section">
-                        <h3 class="control-title">지역 설정</h3>
-                        <div class="filter-group">
-                            <div class="input-group">
-                                <label class="input-label" for="regionFilter">지역 선택</label>
-                                <select class="form-select" id="regionFilter">
-                                    <option value="">전체 지역</option>
-                                </select>
-                            </div>
-                        </div>
-                    </section>
                     
                     <section class="control-section">
                         <h3 class="control-title">표시 설정</h3>
@@ -826,7 +815,7 @@
                 project: '#10b981',     // 프로젝트 (초록)
                 contractor: '#2563eb',  // 발주처 (파랑)
                 field: '#f59e0b',       // 분야 (주황)
-                region: '#8b5cf6',      // 지역 (보라)
+                service: '#8b5cf6',     // 용역 (보라)
                 highlight: '#ef4444',   // 하이라이트 (빨강)
                 connection: '#94a3b8'   // 연결선 (회색)
             },
@@ -844,7 +833,7 @@
             },
             search: {
                 threshold: 0.3,
-                keys: ['프로젝트명', '발주처', '분야', '용역', '지역', 'year']
+                keys: ['프로젝트명', '발주처', '분야', '용역', 'year']
             }
         };
         
@@ -1018,16 +1007,8 @@
                 serviceSelect.add(new Option(service, service));
             });
             
-            // Region setup
-            const regions = [...new Set(allData.map(d => d.지역))].filter(r => r).sort();
-            const regionSelect = document.getElementById('regionFilter');
-            
-            regions.forEach(region => {
-                regionSelect.add(new Option(region, region));
-            });
-            
             // Event listeners
-            [startYearSelect, endYearSelect, fieldSelect, serviceSelect, regionSelect].forEach(select => {
+            [startYearSelect, endYearSelect, fieldSelect, serviceSelect].forEach(select => {
                 select.addEventListener('change', updateVisualization);
             });
             
@@ -1124,7 +1105,6 @@
             const endYear = parseInt(document.getElementById('endYear')?.value || '2025');
             const selectedField = document.getElementById('fieldFilter')?.value || '';
             const selectedService = document.getElementById('serviceFilter')?.value || '';
-            const selectedRegion = document.getElementById('regionFilter')?.value || '';
             
             return allData.filter(d => {
                 // Year filtering
@@ -1137,10 +1117,7 @@
                 // Service filtering
                 const serviceMatch = !selectedService || d.용역 === selectedService;
                 
-                // Region filtering
-                const regionMatch = !selectedRegion || d.지역 === selectedRegion;
-                
-                return yearMatch && fieldMatch && serviceMatch && regionMatch;
+                return yearMatch && fieldMatch && serviceMatch;
             });
         }
         
@@ -1152,7 +1129,7 @@
                 const projectId = `project_${d.프로젝트명}`;
                 const contractorId = `contractor_${d.발주처}`;
                 const fieldId = `field_${d.분야}`;
-                const regionId = `region_${d.지역}`;
+                const serviceId = `service_${d.용역}`;
                 
                 // Add project node
                 if (!nodeMap.has(projectId)) {
@@ -1163,8 +1140,7 @@
                         connections: 0,
                         year: d.year,
                         field: d.분야,
-                        service: d.용역,
-                        region: d.지역
+                        service: d.용역
                     });
                 }
                 
@@ -1188,12 +1164,12 @@
                     });
                 }
                 
-                // Add region node
-                if (!nodeMap.has(regionId)) {
-                    nodeMap.set(regionId, {
-                        id: regionId,
-                        name: d.지역,
-                        type: 'region',
+                // Add service node
+                if (!nodeMap.has(serviceId)) {
+                    nodeMap.set(serviceId, {
+                        id: serviceId,
+                        name: d.용역,
+                        type: 'service',
                         connections: 0
                     });
                 }
@@ -1202,7 +1178,7 @@
                 const links = [
                     { source: projectId, target: contractorId },
                     { source: projectId, target: fieldId },
-                    { source: projectId, target: regionId }
+                    { source: projectId, target: serviceId }
                 ];
                 
                 links.forEach(link => {
@@ -1222,7 +1198,7 @@
                 nodeMap.get(projectId).connections += 3;
                 nodeMap.get(contractorId).connections++;
                 nodeMap.get(fieldId).connections++;
-                nodeMap.get(regionId).connections++;
+                nodeMap.get(serviceId).connections++;
             });
             
             return {
@@ -1287,7 +1263,7 @@
                         case 'project': return CONFIG.colors.project;
                         case 'contractor': return CONFIG.colors.contractor;
                         case 'field': return CONFIG.colors.field;
-                        case 'region': return CONFIG.colors.region;
+                        case 'service': return CONFIG.colors.service;
                         default: return CONFIG.colors.connection;
                     }
                 })
@@ -1309,7 +1285,7 @@
                         case 'project': return CONFIG.colors.project;
                         case 'contractor': return CONFIG.colors.contractor;
                         case 'field': return CONFIG.colors.field;
-                        case 'region': return CONFIG.colors.region;
+                        case 'service': return CONFIG.colors.service;
                         default: return CONFIG.colors.connection;
                     }
                 });
@@ -1386,8 +1362,7 @@
                     tooltipContent += `유형: 프로젝트<br>`;
                     tooltipContent += `연도: ${d.year}<br>`;
                     tooltipContent += `분야: ${d.field}<br>`;
-                    tooltipContent += `용역: ${d.service}<br>`;
-                    tooltipContent += `지역: ${d.region}`;
+                    tooltipContent += `용역: ${d.service}`;
                     break;
                 case 'contractor':
                     tooltipContent += `유형: 발주처<br>`;
@@ -1399,10 +1374,10 @@
                     const fieldProjects = allData.filter(item => item.분야 === d.name);
                     tooltipContent += `관련 프로젝트: ${fieldProjects.length}개`;
                     break;
-                case 'region':
-                    tooltipContent += `유형: 지역<br>`;
-                    const regionProjects = allData.filter(item => item.지역 === d.name);
-                    tooltipContent += `지역 프로젝트: ${regionProjects.length}개`;
+                case 'service':
+                    tooltipContent += `유형: 용역<br>`;
+                    const serviceProjects = allData.filter(item => item.용역 === d.name);
+                    tooltipContent += `관련 프로젝트: ${serviceProjects.length}개`;
                     break;
                 default:
                     tooltipContent += `유형: 기타`;
@@ -1446,8 +1421,7 @@
             const matchedProjects = new Set(matchedData.map(d => `project_${d.프로젝트명}`));
             const matchedContractors = new Set(matchedData.map(d => `contractor_${d.발주처}`));
             const matchedFields = new Set(matchedData.map(d => `field_${d.분야}`));
-            const matchedRegions = new Set(matchedData.map(d => `region_${d.지역}`));
-            const allMatched = new Set([...matchedProjects, ...matchedContractors, ...matchedFields, ...matchedRegions]);
+            const allMatched = new Set([...matchedProjects, ...matchedContractors, ...matchedFields]);
             
             nodeGroup.selectAll('circle')
                 .style('opacity', d => allMatched.has(d.id) ? 1 : 0.3)
@@ -1465,10 +1439,9 @@
             const projectNodes = nodes.filter(d => d.type === 'project');
             const contractorNodes = nodes.filter(d => d.type === 'contractor');
             const fieldNodes = nodes.filter(d => d.type === 'field');
-            const regionNodes = nodes.filter(d => d.type === 'region');
             
             document.getElementById('totalProjects').textContent = projectNodes.length.toLocaleString();
-            document.getElementById('totalServices').textContent = (contractorNodes.length + fieldNodes.length + regionNodes.length).toLocaleString();
+            document.getElementById('totalServices').textContent = (contractorNodes.length + fieldNodes.length).toLocaleString();
             document.getElementById('totalConnections').textContent = links.length.toLocaleString();
             
             const selectedInfo = document.getElementById('selectedInfo');
