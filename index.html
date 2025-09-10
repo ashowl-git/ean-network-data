@@ -697,11 +697,11 @@
                 <div class="stats-title">네트워크 현황</div>
                 <div class="stats-grid">
                     <div class="stat-item">
-                        <span class="stat-label">총 프로젝트</span>
+                        <span class="stat-label">프로젝트</span>
                         <span class="stat-value" id="totalProjects">-</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">총 용역</span>
+                        <span class="stat-label">노드</span>
                         <span class="stat-value" id="totalServices">-</span>
                     </div>
                     <div class="stat-item">
@@ -746,12 +746,30 @@
                     </section>
                     
                     <section class="control-section">
-                        <h3 class="control-title">용역 유형</h3>
+                        <h3 class="control-title">분야 및 용역</h3>
                         <div class="filter-group">
+                            <div class="input-group">
+                                <label class="input-label" for="fieldFilter">분야 선택</label>
+                                <select class="form-select" id="fieldFilter">
+                                    <option value="">전체 분야</option>
+                                </select>
+                            </div>
                             <div class="input-group">
                                 <label class="input-label" for="serviceFilter">용역 선택</label>
                                 <select class="form-select" id="serviceFilter">
                                     <option value="">전체 용역</option>
+                                </select>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <section class="control-section">
+                        <h3 class="control-title">지역 설정</h3>
+                        <div class="filter-group">
+                            <div class="input-group">
+                                <label class="input-label" for="regionFilter">지역 선택</label>
+                                <select class="form-select" id="regionFilter">
+                                    <option value="">전체 지역</option>
                                 </select>
                             </div>
                         </div>
@@ -805,10 +823,12 @@
         // Configuration
         const CONFIG = {
             colors: {
-                contract: '#10b981',
-                service: '#2563eb',
-                highlight: '#f59e0b',
-                connection: '#94a3b8'
+                project: '#10b981',     // 프로젝트 (초록)
+                contractor: '#2563eb',  // 발주처 (파랑)
+                field: '#f59e0b',       // 분야 (주황)
+                region: '#8b5cf6',      // 지역 (보라)
+                highlight: '#ef4444',   // 하이라이트 (빨강)
+                connection: '#94a3b8'   // 연결선 (회색)
             },
             node: {
                 radius: {
@@ -824,7 +844,7 @@
             },
             search: {
                 threshold: 0.3,
-                keys: ['계약명', '수행용역']
+                keys: ['프로젝트명', '발주처', '분야', '용역', '지역', 'year']
             }
         };
         
@@ -880,39 +900,90 @@
         // DATA LOADING & PROCESSING
         // ==========================================
         async function loadData() {
+            let jsonData = null;
+            let data = [];
+            
             try {
-                // Try loading JSON first (faster)
-                let data;
+                // Try loading JSON first
                 try {
+                    console.log('Loading data.json...');
                     const response = await fetch('data.json');
-                    const jsonData = await response.json();
-                    data = jsonData.records.map(record => ({
-                        연도: jsonData.lookup.years[record[0]],
-                        계약명: jsonData.lookup.contracts[record[1]],
-                        수행용역: jsonData.lookup.services[record[2]]
-                    }));
-                } catch {
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    jsonData = await response.json();
+                    
+                    console.log('✅ JSON data loaded:', {
+                        total: jsonData.metadata?.total_records || 'unknown',
+                        dateRange: jsonData.metadata?.date_range || 'unknown',
+                        fieldsCount: jsonData.metadata?.fields_count || 'unknown'
+                    });
+                    
+                    // Use the converted records directly
+                    data = jsonData.records || [];
+                    
+                    if (data.length === 0) {
+                        throw new Error('No records found in JSON data');
+                    }
+                    
+                } catch (jsonError) {
+                    console.warn('JSON loading failed, trying CSV fallback:', jsonError.message);
+                    
                     // Fallback to CSV
-                    const response = await fetch('202508_EAN계약현황_완전본.csv');
-                    const text = await response.text();
-                    data = d3.csvParse(text);
+                    try {
+                        const response = await fetch('202508_EAN계약현황_완전본.csv');
+                        if (!response.ok) {
+                            throw new Error(`CSV HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        const text = await response.text();
+                        data = d3.csvParse(text);
+                        console.log('✅ CSV fallback data loaded:', data.length, 'records');
+                    } catch (csvError) {
+                        throw new Error(`Both JSON and CSV loading failed. JSON: ${jsonError.message}, CSV: ${csvError.message}`);
+                    }
                 }
                 
-                allData = data.filter(d => d.연도 && d.계약명 && d.수행용역);
+                // Filter valid data - updated for new column structure
+                const validData = data.filter(d => {
+                    const hasYear = d.year;
+                    const hasProject = d.프로젝트명;
+                    const hasContractor = d.발주처;
+                    const hasField = d.분야;
+                    const hasService = d.용역;
+                    return hasYear && hasProject && hasContractor && hasField && hasService;
+                });
+                
+                console.log(`📊 Data validation: ${data.length} total → ${validData.length} valid records`);
+                
+                if (validData.length === 0) {
+                    throw new Error('No valid records found after filtering');
+                }
+                
+                allData = validData;
+                
+                // Show data information if available
+                if (jsonData && jsonData.metadata) {
+                    displayDataInfo(jsonData.metadata);
+                }
+                
                 initializeFilters();
                 initializeSearch();
                 updateVisualization();
                 hideLoading();
                 
+                console.log('🎉 Data loading completed successfully');
+                
             } catch (error) {
-                console.error('데이터 로딩 실패:', error);
-                showError('데이터를 불러올 수 없습니다.');
+                console.error('💥 Data loading failed:', error);
+                showError(`데이터를 불러올 수 없습니다: ${error.message}`);
             }
         }
         
         function initializeFilters() {
             // Year range setup
-            const years = [...new Set(allData.map(d => parseInt(d.연도)))].sort();
+            const years = [...new Set(allData.map(d => parseInt(d.year)))].filter(y => !isNaN(y)).sort();
             const startYearSelect = document.getElementById('startYear');
             const endYearSelect = document.getElementById('endYear');
             
@@ -931,16 +1002,32 @@
                 endYearSelect.add(endOption);
             });
             
+            // Field types setup
+            const fields = [...new Set(allData.map(d => d.분야))].filter(f => f).sort();
+            const fieldSelect = document.getElementById('fieldFilter');
+            
+            fields.forEach(field => {
+                fieldSelect.add(new Option(field, field));
+            });
+            
             // Service types setup
-            const services = [...new Set(allData.map(d => d.수행용역))].sort();
+            const services = [...new Set(allData.map(d => d.용역))].filter(s => s).sort();
             const serviceSelect = document.getElementById('serviceFilter');
             
             services.forEach(service => {
                 serviceSelect.add(new Option(service, service));
             });
             
+            // Region setup
+            const regions = [...new Set(allData.map(d => d.지역))].filter(r => r).sort();
+            const regionSelect = document.getElementById('regionFilter');
+            
+            regions.forEach(region => {
+                regionSelect.add(new Option(region, region));
+            });
+            
             // Event listeners
-            [startYearSelect, endYearSelect, serviceSelect].forEach(select => {
+            [startYearSelect, endYearSelect, fieldSelect, serviceSelect, regionSelect].forEach(select => {
                 select.addEventListener('change', updateVisualization);
             });
             
@@ -1033,15 +1120,27 @@
         }
         
         function getFilteredData() {
-            const startYear = parseInt(document.getElementById('startYear').value);
-            const endYear = parseInt(document.getElementById('endYear').value);
-            const selectedService = document.getElementById('serviceFilter').value;
+            const startYear = parseInt(document.getElementById('startYear')?.value || '2003');
+            const endYear = parseInt(document.getElementById('endYear')?.value || '2025');
+            const selectedField = document.getElementById('fieldFilter')?.value || '';
+            const selectedService = document.getElementById('serviceFilter')?.value || '';
+            const selectedRegion = document.getElementById('regionFilter')?.value || '';
             
             return allData.filter(d => {
-                const year = parseInt(d.연도);
-                const yearMatch = year >= startYear && year <= endYear;
-                const serviceMatch = !selectedService || d.수행용역 === selectedService;
-                return yearMatch && serviceMatch;
+                // Year filtering
+                const year = parseInt(d.year);
+                const yearMatch = !isNaN(year) && year >= startYear && year <= endYear;
+                
+                // Field filtering
+                const fieldMatch = !selectedField || d.분야 === selectedField;
+                
+                // Service filtering
+                const serviceMatch = !selectedService || d.용역 === selectedService;
+                
+                // Region filtering
+                const regionMatch = !selectedRegion || d.지역 === selectedRegion;
+                
+                return yearMatch && fieldMatch && serviceMatch && regionMatch;
             });
         }
         
@@ -1050,43 +1149,80 @@
             const linkMap = new Map();
             
             data.forEach(d => {
-                const contractId = `contract_${d.계약명}`;
-                const serviceId = `service_${d.수행용역}`;
+                const projectId = `project_${d.프로젝트명}`;
+                const contractorId = `contractor_${d.발주처}`;
+                const fieldId = `field_${d.분야}`;
+                const regionId = `region_${d.지역}`;
                 
-                // Add nodes
-                if (!nodeMap.has(contractId)) {
-                    nodeMap.set(contractId, {
-                        id: contractId,
-                        name: d.계약명,
-                        type: 'contract',
+                // Add project node
+                if (!nodeMap.has(projectId)) {
+                    nodeMap.set(projectId, {
+                        id: projectId,
+                        name: d.프로젝트명,
+                        type: 'project',
+                        connections: 0,
+                        year: d.year,
+                        field: d.분야,
+                        service: d.용역,
+                        region: d.지역
+                    });
+                }
+                
+                // Add contractor node
+                if (!nodeMap.has(contractorId)) {
+                    nodeMap.set(contractorId, {
+                        id: contractorId,
+                        name: d.발주처,
+                        type: 'contractor',
                         connections: 0
                     });
                 }
                 
-                if (!nodeMap.has(serviceId)) {
-                    nodeMap.set(serviceId, {
-                        id: serviceId,
-                        name: d.수행용역,
-                        type: 'service',
+                // Add field node
+                if (!nodeMap.has(fieldId)) {
+                    nodeMap.set(fieldId, {
+                        id: fieldId,
+                        name: d.분야,
+                        type: 'field',
+                        connections: 0
+                    });
+                }
+                
+                // Add region node
+                if (!nodeMap.has(regionId)) {
+                    nodeMap.set(regionId, {
+                        id: regionId,
+                        name: d.지역,
+                        type: 'region',
                         connections: 0
                     });
                 }
                 
                 // Add links
-                const linkId = `${contractId}_${serviceId}`;
-                if (linkMap.has(linkId)) {
-                    linkMap.get(linkId).weight++;
-                } else {
-                    linkMap.set(linkId, {
-                        source: contractId,
-                        target: serviceId,
-                        weight: 1
-                    });
-                }
+                const links = [
+                    { source: projectId, target: contractorId },
+                    { source: projectId, target: fieldId },
+                    { source: projectId, target: regionId }
+                ];
+                
+                links.forEach(link => {
+                    const linkId = `${link.source}_${link.target}`;
+                    if (linkMap.has(linkId)) {
+                        linkMap.get(linkId).weight++;
+                    } else {
+                        linkMap.set(linkId, {
+                            source: link.source,
+                            target: link.target,
+                            weight: 1
+                        });
+                    }
+                });
                 
                 // Update connection counts
-                nodeMap.get(contractId).connections++;
-                nodeMap.get(serviceId).connections++;
+                nodeMap.get(projectId).connections += 3;
+                nodeMap.get(contractorId).connections++;
+                nodeMap.get(fieldId).connections++;
+                nodeMap.get(regionId).connections++;
             });
             
             return {
@@ -1146,7 +1282,15 @@
             
             const nodeEnter = node.enter().append('circle')
                 .attr('r', getNodeRadius)
-                .attr('fill', d => d.type === 'contract' ? CONFIG.colors.contract : CONFIG.colors.service)
+                .attr('fill', d => {
+                    switch(d.type) {
+                        case 'project': return CONFIG.colors.project;
+                        case 'contractor': return CONFIG.colors.contractor;
+                        case 'field': return CONFIG.colors.field;
+                        case 'region': return CONFIG.colors.region;
+                        default: return CONFIG.colors.connection;
+                    }
+                })
                 .attr('stroke', '#fff')
                 .attr('stroke-width', 2)
                 .style('cursor', 'pointer')
@@ -1160,7 +1304,15 @@
             
             node.merge(nodeEnter)
                 .attr('r', getNodeRadius)
-                .attr('fill', d => d.type === 'contract' ? CONFIG.colors.contract : CONFIG.colors.service);
+                .attr('fill', d => {
+                    switch(d.type) {
+                        case 'project': return CONFIG.colors.project;
+                        case 'contractor': return CONFIG.colors.contractor;
+                        case 'field': return CONFIG.colors.field;
+                        case 'region': return CONFIG.colors.region;
+                        default: return CONFIG.colors.connection;
+                    }
+                });
         }
         
         function updateVisualization() {
@@ -1223,9 +1375,42 @@
         // ==========================================
         function showTooltip(event, d) {
             const tooltip = document.getElementById('tooltip');
-            tooltip.innerHTML = `<strong>${d.name}</strong><br>연결: ${d.connections}개`;
-            tooltip.style.left = event.pageX + 'px';
-            tooltip.style.top = event.pageY + 'px';
+            
+            // Enhanced tooltip with more information based on node type
+            let tooltipContent = `<strong>${d.name}</strong><br>`;
+            tooltipContent += `연결: ${d.connections}개<br>`;
+            
+            // Type-specific information
+            switch(d.type) {
+                case 'project':
+                    tooltipContent += `유형: 프로젝트<br>`;
+                    tooltipContent += `연도: ${d.year}<br>`;
+                    tooltipContent += `분야: ${d.field}<br>`;
+                    tooltipContent += `용역: ${d.service}<br>`;
+                    tooltipContent += `지역: ${d.region}`;
+                    break;
+                case 'contractor':
+                    tooltipContent += `유형: 발주처<br>`;
+                    const contractorProjects = allData.filter(item => item.발주처 === d.name);
+                    tooltipContent += `총 프로젝트: ${contractorProjects.length}개`;
+                    break;
+                case 'field':
+                    tooltipContent += `유형: 분야<br>`;
+                    const fieldProjects = allData.filter(item => item.분야 === d.name);
+                    tooltipContent += `관련 프로젝트: ${fieldProjects.length}개`;
+                    break;
+                case 'region':
+                    tooltipContent += `유형: 지역<br>`;
+                    const regionProjects = allData.filter(item => item.지역 === d.name);
+                    tooltipContent += `지역 프로젝트: ${regionProjects.length}개`;
+                    break;
+                default:
+                    tooltipContent += `유형: 기타`;
+            }
+            
+            tooltip.innerHTML = tooltipContent;
+            tooltip.style.left = event.pageX + 10 + 'px';
+            tooltip.style.top = event.pageY - 10 + 'px';
             tooltip.dataset.show = 'true';
         }
         
@@ -1258,9 +1443,11 @@
         }
         
         function highlightSearchResults(matchedData) {
-            const matchedContracts = new Set(matchedData.map(d => `contract_${d.계약명}`));
-            const matchedServices = new Set(matchedData.map(d => `service_${d.수행용역}`));
-            const allMatched = new Set([...matchedContracts, ...matchedServices]);
+            const matchedProjects = new Set(matchedData.map(d => `project_${d.프로젝트명}`));
+            const matchedContractors = new Set(matchedData.map(d => `contractor_${d.발주처}`));
+            const matchedFields = new Set(matchedData.map(d => `field_${d.분야}`));
+            const matchedRegions = new Set(matchedData.map(d => `region_${d.지역}`));
+            const allMatched = new Set([...matchedProjects, ...matchedContractors, ...matchedFields, ...matchedRegions]);
             
             nodeGroup.selectAll('circle')
                 .style('opacity', d => allMatched.has(d.id) ? 1 : 0.3)
@@ -1275,11 +1462,13 @@
         }
         
         function updateStats() {
-            const contractNodes = nodes.filter(d => d.type === 'contract');
-            const serviceNodes = nodes.filter(d => d.type === 'service');
+            const projectNodes = nodes.filter(d => d.type === 'project');
+            const contractorNodes = nodes.filter(d => d.type === 'contractor');
+            const fieldNodes = nodes.filter(d => d.type === 'field');
+            const regionNodes = nodes.filter(d => d.type === 'region');
             
-            document.getElementById('totalProjects').textContent = contractNodes.length.toLocaleString();
-            document.getElementById('totalServices').textContent = serviceNodes.length.toLocaleString();
+            document.getElementById('totalProjects').textContent = projectNodes.length.toLocaleString();
+            document.getElementById('totalServices').textContent = (contractorNodes.length + fieldNodes.length + regionNodes.length).toLocaleString();
             document.getElementById('totalConnections').textContent = links.length.toLocaleString();
             
             const selectedInfo = document.getElementById('selectedInfo');
@@ -1299,19 +1488,81 @@
             setTimeout(() => overlay.remove(), 350);
         }
         
+        function displayDataInfo(metadata) {
+            const infoElement = document.createElement('div');
+            infoElement.id = 'dataInfo';
+            infoElement.style.cssText = `
+                position: absolute;
+                top: var(--space-6);
+                left: var(--space-6);
+                background: var(--surface);
+                backdrop-filter: blur(12px);
+                border: 1px solid var(--border-primary);
+                border-radius: var(--radius-lg);
+                padding: var(--space-3) var(--space-4);
+                font-size: var(--font-size-xs);
+                color: var(--text-secondary);
+                z-index: 5;
+                max-width: 250px;
+            `;
+            
+            const lastUpdated = new Date(metadata.generated_at);
+            const now = new Date();
+            const daysDiff = Math.floor((now - lastUpdated) / (1000 * 60 * 60 * 24));
+            
+            infoElement.innerHTML = `
+                <div style="font-weight: var(--font-weight-semibold); color: var(--text-primary); margin-bottom: var(--space-1);">
+                    데이터 정보
+                </div>
+                <div>업데이트: ${lastUpdated.toLocaleDateString('ko-KR')}</div>
+                <div>총 ${metadata.total_records.toLocaleString()}개 프로젝트</div>
+                <div>${metadata.contractors_count}개 계약처, ${metadata.fields_count}개 분야</div>
+                ${daysDiff > 7 ? `<div style="color: var(--warning); margin-top: var(--space-1);">⚠️ ${daysDiff}일 전 데이터</div>` : ''}
+            `;
+            
+            document.querySelector('.main').appendChild(infoElement);
+        }
+
         function showError(message) {
             const overlay = document.getElementById('loadingOverlay');
+            if (!overlay) {
+                console.error('Loading overlay not found');
+                alert(`오류: ${message}`);
+                return;
+            }
+            
             overlay.innerHTML = `
-                <div style="text-align: center; color: var(--error);">
+                <div style="text-align: center; color: var(--error); max-width: 400px;">
                     <svg width="48" height="48" fill="currentColor" viewBox="0 0 24 24" style="margin-bottom: 1rem;">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                     </svg>
                     <div style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">
-                        오류가 발생했습니다
+                        데이터 로딩 오류
                     </div>
-                    <div style="color: var(--text-secondary);">${message}</div>
+                    <div style="color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.5;">
+                        ${message}
+                    </div>
+                    <button onclick="location.reload()" style="
+                        background: var(--ean-primary);
+                        color: white;
+                        border: none;
+                        padding: var(--space-3) var(--space-6);
+                        border-radius: var(--radius-md);
+                        cursor: pointer;
+                        font-size: var(--font-size-sm);
+                        transition: all var(--transition-fast);
+                    " onmouseover="this.style.background='var(--ean-primary-dark)'" 
+                       onmouseout="this.style.background='var(--ean-primary)'">
+                        다시 시도
+                    </button>
+                    <div style="margin-top: var(--space-4); font-size: var(--font-size-xs); color: var(--text-tertiary);">
+                        문제가 지속되면 데이터 파일을 확인하세요
+                    </div>
                 </div>
             `;
+            
+            // Show the overlay
+            overlay.dataset.state = 'visible';
         }
         
         // ==========================================
