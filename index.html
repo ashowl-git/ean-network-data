@@ -241,7 +241,7 @@
             gap: var(--space-2);
         }
         
-        .theme-toggle, .menu-toggle {
+        .theme-toggle, .menu-toggle, .help-toggle {
             width: 40px;
             height: 40px;
             border: none;
@@ -255,7 +255,7 @@
             transition: all var(--transition-fast);
         }
         
-        .theme-toggle:hover, .menu-toggle:hover {
+        .theme-toggle:hover, .menu-toggle:hover, .help-toggle:hover {
             background: var(--surface-hover);
             color: var(--text-primary);
         }
@@ -665,6 +665,223 @@
                 --text-secondary: #ffffff;
             }
         }
+        
+        /* ==========================================
+           HELP MODAL STYLES
+        ========================================== */
+        .help-modal {
+            position: fixed;
+            inset: 0;
+            z-index: var(--z-modal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-normal), visibility var(--transition-normal);
+        }
+        
+        .help-modal[data-state="open"] {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .help-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+        }
+        
+        .help-modal-content {
+            position: relative;
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            max-width: 600px;
+            max-height: 80vh;
+            width: 100%;
+            overflow: hidden;
+            transform: scale(0.95);
+            transition: transform var(--transition-normal);
+        }
+        
+        .help-modal[data-state="open"] .help-modal-content {
+            transform: scale(1);
+        }
+        
+        .help-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-6);
+            border-bottom: 1px solid var(--border-primary);
+            background: var(--bg-secondary);
+        }
+        
+        .help-modal-title {
+            margin: 0;
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--text-primary);
+        }
+        
+        .help-modal-close {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: var(--radius-md);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+        
+        .help-modal-close:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+        
+        .help-modal-body {
+            padding: var(--space-6);
+            max-height: calc(80vh - 100px);
+            overflow-y: auto;
+        }
+        
+        .help-section {
+            display: flex;
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+        
+        .help-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .help-section-icon {
+            font-size: var(--font-size-2xl);
+            line-height: 1;
+            flex-shrink: 0;
+            margin-top: var(--space-1);
+        }
+        
+        .help-section-content {
+            flex: 1;
+        }
+        
+        .help-section-title {
+            margin: 0 0 var(--space-3) 0;
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+        }
+        
+        .help-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        
+        .help-list li {
+            margin-bottom: var(--space-2);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        
+        .help-list li:last-child {
+            margin-bottom: 0;
+        }
+        
+        .help-list kbd {
+            display: inline-block;
+            padding: var(--space-1) var(--space-2);
+            background: var(--surface-variant);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .help-list strong {
+            color: var(--text-primary);
+            font-weight: var(--font-weight-semibold);
+        }
+        
+        /* Dependent dropdown animations and feedback */
+        .filter-group select {
+            transition: all 0.2s ease;
+        }
+        
+        .filter-group select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: var(--surface-variant);
+        }
+        
+        .filter-group label {
+            transition: opacity 0.2s ease;
+        }
+        
+        .dropdown-loading {
+            position: relative;
+        }
+        
+        .dropdown-loading::after {
+            content: '';
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--border-primary);
+            border-top: 2px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: dropdown-spin 1s linear infinite;
+        }
+        
+        @keyframes dropdown-spin {
+            0% { transform: translateY(-50%) rotate(0deg); }
+            100% { transform: translateY(-50%) rotate(360deg); }
+        }
+        
+        .option-count {
+            color: var(--text-secondary);
+            font-size: var(--font-size-xs);
+            font-weight: normal;
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .help-modal {
+                padding: var(--space-2);
+            }
+            
+            .help-modal-content {
+                max-height: 90vh;
+            }
+            
+            .help-modal-header,
+            .help-modal-body {
+                padding: var(--space-4);
+            }
+            
+            .help-section {
+                gap: var(--space-3);
+                margin-bottom: var(--space-4);
+            }
+            
+            .help-section-icon {
+                font-size: var(--font-size-xl);
+            }
+        }
     </style>
 </head>
 <body>
@@ -708,6 +925,11 @@
                         <span class="sr-only">생키</span>
                     </button>
                 </div>
+                <button class="help-toggle" aria-label="도움말" id="helpToggle">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </button>
                 <button class="theme-toggle" aria-label="테마 변경" id="themeToggle">
                     <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
@@ -765,7 +987,7 @@
             </div>
             
             <!-- Controls Panel -->
-            <aside class="controls-panel" id="controlsPanel" role="complementary" aria-label="필터 및 설정">
+            <aside class="controls-panel" id="controlsPanel" data-state="expanded" role="complementary" aria-label="필터 및 설정">
                 <button class="controls-toggle" id="controlsToggle" aria-label="필터 패널 열기">
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -834,6 +1056,70 @@
         </main>
     </div>
 
+    <!-- Help Modal -->
+    <div class="help-modal" id="helpModal" role="dialog" aria-labelledby="helpModalTitle" aria-hidden="true">
+        <div class="help-modal-backdrop" id="helpModalBackdrop"></div>
+        <div class="help-modal-content" role="document">
+            <div class="help-modal-header">
+                <h2 id="helpModalTitle" class="help-modal-title">화면 컨트롤 가이드</h2>
+                <button class="help-modal-close" id="helpModalClose" aria-label="도움말 닫기">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="help-modal-body">
+                <div class="help-section">
+                    <div class="help-section-icon">🖱️</div>
+                    <div class="help-section-content">
+                        <h3 class="help-section-title">마우스 컨트롤</h3>
+                        <ul class="help-list">
+                            <li><kbd>Ctrl</kbd> + <strong>휠</strong>: 줌 인/아웃</li>
+                            <li><strong>드래그</strong>: 화면 이동</li>
+                            <li><strong>노드 클릭</strong>: 선택/하이라이트</li>
+                            <li><strong>휠 스크롤</strong>: 페이지 스크롤</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <div class="help-section-icon">⌨️</div>
+                    <div class="help-section-content">
+                        <h3 class="help-section-title">키보드 단축키</h3>
+                        <ul class="help-list">
+                            <li><kbd>Ctrl</kbd> + <kbd>K</kbd> (Mac: <kbd>⌘</kbd> + <kbd>K</kbd>): 검색 포커스</li>
+                            <li><kbd>ESC</kbd>: 검색 취소 / 모달 닫기</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <div class="help-section-icon">🎛️</div>
+                    <div class="help-section-content">
+                        <h3 class="help-section-title">패널 컨트롤</h3>
+                        <ul class="help-list">
+                            <li><strong>우측 패널</strong>: 기간, 분야, 용역 필터 및 표시 설정</li>
+                            <li><strong>좌측 하단</strong>: 네트워크 현황 통계</li>
+                            <li><strong>상단 버튼</strong>: 네트워크/생키 다이어그램 전환</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <div class="help-section-icon">🔍</div>
+                    <div class="help-section-content">
+                        <h3 class="help-section-title">검색 및 필터</h3>
+                        <ul class="help-list">
+                            <li>검색창에서 프로젝트명, 발주처, 분야, 용역 검색 가능</li>
+                            <li>우측 패널에서 연도별, 분야별, 용역별 필터링</li>
+                            <li>노드 크기 조절로 가독성 향상</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- External libraries -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
@@ -856,6 +1142,9 @@
         let fuse = null;
         let currentViewMode = 'network'; // 'network' or 'sankey'
         
+        // Dependent dropdown relationship maps
+        let fieldServiceMap = new Map(); // 분야 → 용역들
+        let serviceFieldMap = new Map(); // 용역 → 분야들
         
         // Theme management
         let currentTheme = localStorage.getItem('ean-theme') || 'dark';
@@ -976,6 +1265,11 @@
             const controlsPanel = document.getElementById('controlsPanel');
             const controlsToggle = document.getElementById('controlsToggle');
             
+            // Set initial state - panel is expanded by default
+            const icon = controlsToggle.querySelector('svg path');
+            icon.setAttribute('d', 'm15 19-7-7 7-7');
+            controlsToggle.setAttribute('aria-label', '필터 패널 닫기');
+            
             function togglePanel() {
                 const isExpanded = controlsPanel.dataset.state === 'expanded';
                 controlsPanel.dataset.state = isExpanded ? 'collapsed' : 'expanded';
@@ -992,6 +1286,76 @@
             
             menuToggle.addEventListener('click', togglePanel);
             controlsToggle.addEventListener('click', togglePanel);
+        }
+        
+        // ==========================================
+        // HELP MODAL MANAGEMENT
+        // ==========================================
+        function initializeHelpModal() {
+            const helpToggle = document.getElementById('helpToggle');
+            const helpModal = document.getElementById('helpModal');
+            const helpModalClose = document.getElementById('helpModalClose');
+            const helpModalBackdrop = document.getElementById('helpModalBackdrop');
+            
+            function openHelpModal() {
+                helpModal.setAttribute('data-state', 'open');
+                helpModal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+                
+                // Focus management
+                const focusableElements = helpModal.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+                
+                if (firstElement) {
+                    firstElement.focus();
+                }
+                
+                // Trap focus within modal
+                function trapFocus(e) {
+                    if (e.key === 'Tab') {
+                        if (e.shiftKey && document.activeElement === firstElement) {
+                            e.preventDefault();
+                            lastElement.focus();
+                        } else if (!e.shiftKey && document.activeElement === lastElement) {
+                            e.preventDefault();
+                            firstElement.focus();
+                        }
+                    }
+                }
+                
+                helpModal.addEventListener('keydown', trapFocus);
+                helpModal._trapFocus = trapFocus; // Store for cleanup
+            }
+            
+            function closeHelpModal() {
+                helpModal.setAttribute('data-state', 'closed');
+                helpModal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+                
+                // Remove focus trap
+                if (helpModal._trapFocus) {
+                    helpModal.removeEventListener('keydown', helpModal._trapFocus);
+                    delete helpModal._trapFocus;
+                }
+                
+                // Return focus to help button
+                helpToggle.focus();
+            }
+            
+            // Event listeners
+            helpToggle.addEventListener('click', openHelpModal);
+            helpModalClose.addEventListener('click', closeHelpModal);
+            helpModalBackdrop.addEventListener('click', closeHelpModal);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && helpModal.getAttribute('data-state') === 'open') {
+                    closeHelpModal();
+                }
+            });
         }
         
         // ==========================================
@@ -1079,6 +1443,156 @@
             }
         }
         
+        // ==========================================
+        // DEPENDENT DROPDOWN FUNCTIONS
+        // ==========================================
+        function buildRelationshipMaps() {
+            console.log('🔗 Building field-service relationship maps...');
+            
+            // Clear existing maps
+            fieldServiceMap.clear();
+            serviceFieldMap.clear();
+            
+            // Build relationship mappings from data
+            allData.forEach(record => {
+                const field = record.분야;
+                const service = record.용역;
+                
+                if (field && service) {
+                    // Field → Services mapping
+                    if (!fieldServiceMap.has(field)) {
+                        fieldServiceMap.set(field, new Set());
+                    }
+                    fieldServiceMap.get(field).add(service);
+                    
+                    // Service → Fields mapping
+                    if (!serviceFieldMap.has(service)) {
+                        serviceFieldMap.set(service, new Set());
+                    }
+                    serviceFieldMap.get(service).add(field);
+                }
+            });
+            
+            console.log(`📊 Built relationships: ${fieldServiceMap.size} fields, ${serviceFieldMap.size} services`);
+        }
+        
+        function updateDependentDropdowns(changedDropdown, selectedValue) {
+            const fieldFilter = document.getElementById('fieldFilter');
+            const serviceFilter = document.getElementById('serviceFilter');
+            const fieldLabel = document.querySelector('label[for="fieldFilter"]');
+            const serviceLabel = document.querySelector('label[for="serviceFilter"]');
+            
+            // Add loading animation to the dependent dropdown
+            if (changedDropdown === 'field') {
+                serviceFilter.parentElement.classList.add('dropdown-loading');
+                serviceFilter.disabled = true;
+                
+                // Use setTimeout to show loading animation briefly
+                setTimeout(() => {
+                    // Field changed - update service dropdown
+                    if (selectedValue === '') {
+                        // Reset to all services
+                        const allServices = getAllServices();
+                        populateServiceDropdown(allServices);
+                        updateDropdownLabel(serviceLabel, '용역', allServices.length);
+                    } else {
+                        // Show only services related to selected field
+                        const relatedServices = fieldServiceMap.get(selectedValue) || new Set();
+                        const serviceArray = Array.from(relatedServices).sort();
+                        populateServiceDropdown(serviceArray);
+                        updateDropdownLabel(serviceLabel, '용역', serviceArray.length);
+                    }
+                    
+                    // Remove loading animation
+                    serviceFilter.parentElement.classList.remove('dropdown-loading');
+                    serviceFilter.disabled = false;
+                }, 150);
+                
+            } else if (changedDropdown === 'service') {
+                fieldFilter.parentElement.classList.add('dropdown-loading');
+                fieldFilter.disabled = true;
+                
+                setTimeout(() => {
+                    // Service changed - update field dropdown
+                    if (selectedValue === '') {
+                        // Reset to all fields
+                        const allFields = getAllFields();
+                        populateFieldDropdown(allFields);
+                        updateDropdownLabel(fieldLabel, '분야', allFields.length);
+                    } else {
+                        // Show only fields related to selected service
+                        const relatedFields = serviceFieldMap.get(selectedValue) || new Set();
+                        const fieldArray = Array.from(relatedFields).sort();
+                        populateFieldDropdown(fieldArray);
+                        updateDropdownLabel(fieldLabel, '분야', fieldArray.length);
+                    }
+                    
+                    // Remove loading animation
+                    fieldFilter.parentElement.classList.remove('dropdown-loading');
+                    fieldFilter.disabled = false;
+                }, 150);
+            }
+        }
+        
+        function updateDropdownLabel(labelElement, baseName, count) {
+            const totalCount = baseName === '분야' ? getAllFields().length : getAllServices().length;
+            if (count === totalCount) {
+                labelElement.innerHTML = `${baseName}:`;
+            } else {
+                labelElement.innerHTML = `${baseName}: <span class="option-count">(${count}개 옵션)</span>`;
+            }
+        }
+        
+        function getAllFields() {
+            return [...new Set(allData.map(d => d.분야))].filter(f => f).sort();
+        }
+        
+        function getAllServices() {
+            return [...new Set(allData.map(d => d.용역))].filter(s => s).sort();
+        }
+        
+        function populateFieldDropdown(fields) {
+            const fieldSelect = document.getElementById('fieldFilter');
+            const currentValue = fieldSelect.value;
+            
+            // Clear existing options except "전체 분야"
+            fieldSelect.innerHTML = '<option value="">전체 분야</option>';
+            
+            // Add new options
+            fields.forEach(field => {
+                const option = new Option(field, field);
+                if (field === currentValue) {
+                    option.selected = true;
+                }
+                fieldSelect.add(option);
+            });
+            
+            // Update label to show count
+            const label = fieldSelect.parentElement.querySelector('.input-label');
+            label.textContent = `분야 선택 (${fields.length}개)`;
+        }
+        
+        function populateServiceDropdown(services) {
+            const serviceSelect = document.getElementById('serviceFilter');
+            const currentValue = serviceSelect.value;
+            
+            // Clear existing options except "전체 용역"
+            serviceSelect.innerHTML = '<option value="">전체 용역</option>';
+            
+            // Add new options
+            services.forEach(service => {
+                const option = new Option(service, service);
+                if (service === currentValue) {
+                    option.selected = true;
+                }
+                serviceSelect.add(option);
+            });
+            
+            // Update label to show count
+            const label = serviceSelect.parentElement.querySelector('.input-label');
+            label.textContent = `용역 선택 (${services.length}개)`;
+        }
+        
         function initializeFilters() {
             // Year range setup
             const years = [...new Set(allData.map(d => parseInt(d.year)))].filter(y => !isNaN(y)).sort();
@@ -1100,25 +1614,38 @@
                 endYearSelect.add(endOption);
             });
             
-            // Field types setup
-            const fields = [...new Set(allData.map(d => d.분야))].filter(f => f).sort();
-            const fieldSelect = document.getElementById('fieldFilter');
+            // Build relationship maps for dependent dropdowns
+            buildRelationshipMaps();
             
-            fields.forEach(field => {
-                fieldSelect.add(new Option(field, field));
+            // Initialize field and service dropdowns with full lists
+            const allFields = getAllFields();
+            const allServices = getAllServices();
+            populateFieldDropdown(allFields);
+            populateServiceDropdown(allServices);
+            
+            // Initialize labels with counts
+            const fieldLabel = document.querySelector('label[for="fieldFilter"]');
+            const serviceLabel = document.querySelector('label[for="serviceFilter"]');
+            updateDropdownLabel(fieldLabel, '분야', allFields.length);
+            updateDropdownLabel(serviceLabel, '용역', allServices.length);
+            
+            // Event listeners with dependent dropdown support
+            [startYearSelect, endYearSelect].forEach(select => {
+                select.addEventListener('change', updateVisualization);
             });
             
-            // Service types setup
-            const services = [...new Set(allData.map(d => d.용역))].filter(s => s).sort();
+            // Special event listeners for dependent dropdowns
+            const fieldSelect = document.getElementById('fieldFilter');
             const serviceSelect = document.getElementById('serviceFilter');
             
-            services.forEach(service => {
-                serviceSelect.add(new Option(service, service));
+            fieldSelect.addEventListener('change', (e) => {
+                updateDependentDropdowns('field', e.target.value);
+                updateVisualization();
             });
             
-            // Event listeners
-            [startYearSelect, endYearSelect, fieldSelect, serviceSelect].forEach(select => {
-                select.addEventListener('change', updateVisualization);
+            serviceSelect.addEventListener('change', (e) => {
+                updateDependentDropdowns('service', e.target.value);
+                updateVisualization();
             });
             
             document.getElementById('nodeSize').addEventListener('change', updateVisualization);
@@ -1187,9 +1714,20 @@
             
             svg = d3.select(container);
             
-            // Add zoom behavior
+            // Add zoom behavior - only with Ctrl key
             const zoom = d3.zoom()
                 .scaleExtent([0.1, 4])
+                .filter(event => {
+                    // Only allow zoom when Ctrl key is pressed
+                    if (event.type === 'wheel') {
+                        if (event.ctrlKey || event.metaKey) {
+                            event.preventDefault(); // Prevent page scroll
+                            return true;
+                        }
+                        return false; // Allow normal scroll without zoom
+                    }
+                    return true; // Allow other zoom interactions (drag, touch)
+                })
                 .on('zoom', handleZoom);
             
             svg.call(zoom);
@@ -1580,9 +2118,20 @@
             const innerWidth = width - margin.left - margin.right;
             const innerHeight = height - margin.top - margin.bottom;
             
-            // Add zoom and pan functionality
+            // Add zoom and pan functionality - only with Ctrl key
             const zoom = d3.zoom()
                 .scaleExtent([0.3, 3])
+                .filter(event => {
+                    // Only allow zoom when Ctrl key is pressed
+                    if (event.type === 'wheel') {
+                        if (event.ctrlKey || event.metaKey) {
+                            event.preventDefault(); // Prevent page scroll
+                            return true;
+                        }
+                        return false; // Allow normal scroll without zoom
+                    }
+                    return true; // Allow other zoom interactions (drag, touch)
+                })
                 .on('zoom', (event) => {
                     g.attr('transform', `translate(${margin.left},${margin.top}) ${event.transform}`);
                 });
@@ -1823,9 +2372,20 @@
             const innerWidth = width - margin.left - margin.right;
             const innerHeight = height - margin.top - margin.bottom;
             
-            // Add professional zoom with smooth transitions
+            // Add professional zoom with smooth transitions - only with Ctrl key
             const zoom = d3.zoom()
                 .scaleExtent([0.3, 3])
+                .filter(event => {
+                    // Only allow zoom when Ctrl key is pressed
+                    if (event.type === 'wheel') {
+                        if (event.ctrlKey || event.metaKey) {
+                            event.preventDefault(); // Prevent page scroll
+                            return true;
+                        }
+                        return false; // Allow normal scroll without zoom
+                    }
+                    return true; // Allow other zoom interactions (drag, touch)
+                })
                 .on('zoom', (event) => {
                     mainGroup.attr('transform', `translate(${margin.left}, ${margin.top}) ${event.transform}`);
                 });
@@ -2649,6 +3209,7 @@
             initializeTheme();
             initializeViewModes();
             initializeControls();
+            initializeHelpModal();
             initializeVisualization();
             initializeSimulation();
             
