@@ -1075,9 +1075,10 @@
                         <h3 class="help-section-title">마우스 컨트롤</h3>
                         <ul class="help-list">
                             <li><kbd>Ctrl</kbd> + <strong>휠</strong>: 줌 인/아웃</li>
-                            <li><strong>드래그</strong>: 화면 이동</li>
+                            <li><kbd>Shift</kbd> + <strong>휠</strong>: 좌우 이동</li>
+                            <li><strong>휠 스크롤</strong>: 상하 이동 (생키 모드)</li>
+                            <li><strong>드래그</strong>: 자유 화면 이동</li>
                             <li><strong>노드 클릭</strong>: 선택/하이라이트</li>
-                            <li><strong>휠 스크롤</strong>: 페이지 스크롤</li>
                         </ul>
                     </div>
                 </div>
@@ -1096,11 +1097,13 @@
                 <div class="help-section">
                     <div class="help-section-icon">🎛️</div>
                     <div class="help-section-content">
-                        <h3 class="help-section-title">패널 컨트롤</h3>
+                        <h3 class="help-section-title">패널 및 네비게이션</h3>
                         <ul class="help-list">
                             <li><strong>우측 패널</strong>: 기간, 분야, 용역 필터 및 표시 설정</li>
                             <li><strong>좌측 하단</strong>: 네트워크 현황 통계</li>
                             <li><strong>상단 버튼</strong>: 네트워크/생키 다이어그램 전환</li>
+                            <li><strong>좌측 레이어 네비</strong>: 층별 빠른 이동 (생키 모드)</li>
+                            <li><strong>우하단 미니맵</strong>: 전체 뷰 확인 및 빠른 이동</li>
                         </ul>
                     </div>
                 </div>
@@ -1113,6 +1116,20 @@
                             <li>검색창에서 프로젝트명, 발주처, 분야, 용역 검색 가능</li>
                             <li>우측 패널에서 연도별, 분야별, 용역별 필터링</li>
                             <li>노드 크기 조절로 가독성 향상</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <div class="help-section-icon">📊</div>
+                    <div class="help-section-content">
+                        <h3 class="help-section-title">생키 다이어그램 (새기능)</h3>
+                        <ul class="help-list">
+                            <li><strong>자연스러운 스크롤</strong>: 휠로 상하 이동, Shift+휠로 좌우 이동</li>
+                            <li><strong>레이어 네비게이션</strong>: 좌측 버튼으로 각 층으로 빠른 이동</li>
+                            <li><strong>미니맵</strong>: 우하단에서 전체 뷰 확인 및 클릭 이동</li>
+                            <li><strong>무한 캔버스</strong>: 데이터가 많아도 모든 노드 탐색 가능</li>
+                            <li><strong>검색 기능</strong>: 텍스트 검색으로 즉시 필터링</li>
                         </ul>
                     </div>
                 </div>
@@ -1693,14 +1710,22 @@
             
             // Update visualization with search results
             filteredData = matchedData;
-            updateGraph();
-            highlightSearchResults(matchedData);
+            if (currentViewMode === 'network') {
+                updateGraph();
+                highlightSearchResults(matchedData);
+            } else {
+                updateVisualization();
+            }
         }
         
         function clearSearch() {
             filteredData = getFilteredData();
-            updateGraph();
-            clearHighlights();
+            if (currentViewMode === 'network') {
+                updateGraph();
+                clearHighlights();
+            } else {
+                updateVisualization();
+            }
         }
         
         // ==========================================
@@ -2362,6 +2387,305 @@
         }
         
         // ==========================================
+        // MINIMAP AND NAVIGATION FUNCTIONS
+        // ==========================================
+        
+        function createMinimap(svg, sankeyData, width, height, margin, zoom) {
+            const minimapWidth = 200;
+            const minimapHeight = 120;
+            const minimapMargin = 20;
+            
+            // Create minimap group
+            const minimapGroup = svg.append('g')
+                .attr('class', 'minimap')
+                .attr('transform', `translate(${width - minimapWidth - minimapMargin}, ${height - minimapHeight - minimapMargin})`);
+            
+            // Minimap background
+            minimapGroup.append('rect')
+                .attr('width', minimapWidth)
+                .attr('height', minimapHeight)
+                .attr('fill', 'var(--surface)')
+                .attr('stroke', 'var(--border-primary)')
+                .attr('stroke-width', 2)
+                .attr('rx', 8)
+                .style('filter', 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))')
+                .style('backdrop-filter', 'blur(8px)');
+            
+            // Title
+            minimapGroup.append('text')
+                .attr('x', minimapWidth / 2)
+                .attr('y', 15)
+                .attr('text-anchor', 'middle')
+                .style('fill', 'var(--text-secondary)')
+                .style('font-size', '11px')
+                .style('font-weight', '600')
+                .text('전체 뷰');
+            
+            // Calculate scale for minimap content
+            const contentBounds = sankeyData.contentBounds;
+            const scaleX = (minimapWidth - 20) / contentBounds.width;
+            const scaleY = (minimapHeight - 40) / contentBounds.actualHeight;
+            const minimapScale = Math.min(scaleX, scaleY);
+            
+            // Create simplified minimap content
+            const minimapContent = minimapGroup.append('g')
+                .attr('transform', `translate(10, 25) scale(${minimapScale})`);
+            
+            // Draw simplified layers
+            sankeyData.layers.forEach((layer, layerIndex) => {
+                const layerColor = [
+                    CONFIG.colors.field,
+                    CONFIG.colors.service, 
+                    CONFIG.colors.project,
+                    CONFIG.colors.contractor
+                ][layerIndex];
+                
+                const layerGroup = minimapContent.append('g');
+                
+                layer.forEach(node => {
+                    layerGroup.append('rect')
+                        .attr('x', node.x)
+                        .attr('y', node.y)
+                        .attr('width', node.width)
+                        .attr('height', Math.max(2, node.height * 0.3)) // Simplified height
+                        .attr('fill', layerColor)
+                        .attr('opacity', 0.8);
+                });
+            });
+            
+            // Create viewport indicator
+            const viewportIndicator = minimapGroup.append('rect')
+                .attr('class', 'viewport-indicator')
+                .attr('fill', 'none')
+                .attr('stroke', CONFIG.colors.highlight)
+                .attr('stroke-width', 2)
+                .attr('stroke-dasharray', '3,3')
+                .style('pointer-events', 'none');
+            
+            // Store references for updates
+            svg.minimapData = {
+                group: minimapGroup,
+                content: minimapContent,
+                viewportIndicator: viewportIndicator,
+                scale: minimapScale,
+                width: minimapWidth,
+                height: minimapHeight,
+                contentBounds: contentBounds
+            };
+            
+            // Add click navigation
+            minimapGroup.select('rect')
+                .style('cursor', 'pointer')
+                .on('click', function(event) {
+                    const [mouseX, mouseY] = d3.pointer(event, this);
+                    const contentX = (mouseX - 10) / minimapScale;
+                    const contentY = (mouseY - 25) / minimapScale;
+                    
+                    // Calculate new transform to center the clicked point
+                    const newX = width / 2 - contentX - margin.left;
+                    const newY = height / 2 - contentY - margin.top;
+                    
+                    const newTransform = d3.zoomIdentity.translate(newX, newY);
+                    svg.transition()
+                        .duration(500)
+                        .call(zoom.transform, newTransform);
+                });
+            
+            // Initial viewport update
+            updateMinimap(d3.zoomIdentity, sankeyData, width, height);
+        }
+        
+        function updateMinimap(transform, sankeyData, width, height) {
+            const svg = d3.select('#graphCanvas');
+            const minimapData = svg.node().minimapData;
+            
+            if (!minimapData) return;
+            
+            const { viewportIndicator, scale, width: minimapWidth, height: minimapHeight, contentBounds } = minimapData;
+            
+            // Calculate visible area in content coordinates
+            const visibleX = -transform.x / transform.k;
+            const visibleY = -transform.y / transform.k;
+            const visibleWidth = width / transform.k;
+            const visibleHeight = height / transform.k;
+            
+            // Convert to minimap coordinates
+            const minimapX = 10 + (visibleX * scale);
+            const minimapY = 25 + (visibleY * scale);
+            const minimapVisibleWidth = visibleWidth * scale;
+            const minimapVisibleHeight = visibleHeight * scale;
+            
+            // Update viewport indicator
+            viewportIndicator
+                .attr('x', Math.max(10, Math.min(minimapX, minimapWidth - 10)))
+                .attr('y', Math.max(25, Math.min(minimapY, minimapHeight - 15)))
+                .attr('width', Math.min(minimapVisibleWidth, minimapWidth - 20))
+                .attr('height', Math.min(minimapVisibleHeight, minimapHeight - 40));
+        }
+        
+        function createLayerNavigation(svg, sankeyData, width, height, margin, zoom) {
+            const navWidth = 60;
+            const navItemHeight = 50;
+            const navMargin = 20;
+            const totalNavHeight = sankeyData.layers.length * navItemHeight + 40;
+            
+            // Create navigation group
+            const navGroup = svg.append('g')
+                .attr('class', 'layer-navigation')
+                .attr('transform', `translate(${navMargin}, ${(height - totalNavHeight) / 2})`);
+            
+            // Navigation background
+            navGroup.append('rect')
+                .attr('width', navWidth)
+                .attr('height', totalNavHeight)
+                .attr('fill', 'var(--surface)')
+                .attr('stroke', 'var(--border-primary)')
+                .attr('stroke-width', 2)
+                .attr('rx', 12)
+                .style('filter', 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))')
+                .style('backdrop-filter', 'blur(8px)');
+            
+            // Title
+            navGroup.append('text')
+                .attr('x', navWidth / 2)
+                .attr('y', 20)
+                .attr('text-anchor', 'middle')
+                .style('fill', 'var(--text-secondary)')
+                .style('font-size', '10px')
+                .style('font-weight', '600')
+                .text('레이어');
+            
+            const layerLabels = ['분야', '용역', '프로젝트', '발주처'];
+            const layerColors = [
+                CONFIG.colors.field,
+                CONFIG.colors.service,
+                CONFIG.colors.project,
+                CONFIG.colors.contractor
+            ];
+            
+            // Create navigation items
+            sankeyData.layers.forEach((layer, layerIndex) => {
+                const yPos = 30 + layerIndex * navItemHeight;
+                const layerWidth = width / 5;
+                const targetX = layerWidth * (layerIndex + 0.5) - width / 2;
+                
+                const navItem = navGroup.append('g')
+                    .attr('class', 'nav-item')
+                    .style('cursor', 'pointer');
+                
+                // Layer button
+                navItem.append('rect')
+                    .attr('x', 8)
+                    .attr('y', yPos)
+                    .attr('width', navWidth - 16)
+                    .attr('height', navItemHeight - 8)
+                    .attr('fill', layerColors[layerIndex])
+                    .attr('fill-opacity', 0.1)
+                    .attr('stroke', layerColors[layerIndex])
+                    .attr('stroke-width', 2)
+                    .attr('rx', 6)
+                    .style('transition', 'all 0.2s ease');
+                
+                // Layer icon (colored circle)
+                navItem.append('circle')
+                    .attr('cx', navWidth / 2)
+                    .attr('cy', yPos + 10)
+                    .attr('r', 6)
+                    .attr('fill', layerColors[layerIndex]);
+                
+                // Layer label
+                navItem.append('text')
+                    .attr('x', navWidth / 2)
+                    .attr('y', yPos + 25)
+                    .attr('text-anchor', 'middle')
+                    .style('fill', 'var(--text-primary)')
+                    .style('font-size', '10px')
+                    .style('font-weight', '600')
+                    .text(layerLabels[layerIndex]);
+                
+                // Item count
+                navItem.append('text')
+                    .attr('x', navWidth / 2)
+                    .attr('y', yPos + 35)
+                    .attr('text-anchor', 'middle')
+                    .style('fill', 'var(--text-tertiary)')
+                    .style('font-size', '8px')
+                    .text(layer.length);
+                
+                // Click handler to jump to layer
+                navItem.on('click', function() {
+                    // Calculate the center position of the target layer
+                    const newX = -targetX;
+                    const newY = 0; // Keep current Y position
+                    
+                    const currentTransform = d3.zoomTransform(svg.node());
+                    const newTransform = d3.zoomIdentity
+                        .scale(currentTransform.k)
+                        .translate(newX, currentTransform.y);
+                    
+                    svg.transition()
+                        .duration(800)
+                        .ease(d3.easeCubicOut)
+                        .call(zoom.transform, newTransform);
+                })
+                .on('mouseenter', function() {
+                    d3.select(this).select('rect')
+                        .attr('fill-opacity', 0.2)
+                        .attr('stroke-width', 3);
+                })
+                .on('mouseleave', function() {
+                    d3.select(this).select('rect')
+                        .attr('fill-opacity', 0.1)
+                        .attr('stroke-width', 2);
+                });
+            });
+            
+            // Add "전체 뷰" button
+            const resetButton = navGroup.append('g')
+                .attr('class', 'reset-view-btn')
+                .style('cursor', 'pointer');
+            
+            const resetY = 30 + sankeyData.layers.length * navItemHeight;
+            
+            resetButton.append('rect')
+                .attr('x', 8)
+                .attr('y', resetY)
+                .attr('width', navWidth - 16)
+                .attr('height', navItemHeight - 18)
+                .attr('fill', 'var(--surface-variant)')
+                .attr('stroke', 'var(--border-secondary)')
+                .attr('stroke-width', 1)
+                .attr('rx', 6)
+                .style('transition', 'all 0.2s ease');
+            
+            resetButton.append('text')
+                .attr('x', navWidth / 2)
+                .attr('y', resetY + 20)
+                .attr('text-anchor', 'middle')
+                .style('fill', 'var(--text-secondary)')
+                .style('font-size', '9px')
+                .style('font-weight', '600')
+                .text('전체 뷰');
+            
+            resetButton.on('click', function() {
+                svg.transition()
+                    .duration(1000)
+                    .ease(d3.easeCubicOut)
+                    .call(zoom.transform, d3.zoomIdentity);
+            })
+            .on('mouseenter', function() {
+                d3.select(this).select('rect')
+                    .attr('fill', 'var(--surface-hover)')
+                    .attr('stroke-width', 2);
+            })
+            .on('mouseleave', function() {
+                d3.select(this).select('rect')
+                    .attr('fill', 'var(--surface-variant)')
+                    .attr('stroke-width', 1);
+            });
+        }
+        
+        // ==========================================
         // 🎨 WORLD-CLASS PREMIUM SANKEY DIAGRAM
         // ==========================================
         
@@ -2372,22 +2696,36 @@
             const innerWidth = width - margin.left - margin.right;
             const innerHeight = height - margin.top - margin.bottom;
             
-            // Add professional zoom with smooth transitions - only with Ctrl key
+            // Add intuitive scroll system with smart controls
             const zoom = d3.zoom()
                 .scaleExtent([0.3, 3])
                 .filter(event => {
-                    // Only allow zoom when Ctrl key is pressed
                     if (event.type === 'wheel') {
                         if (event.ctrlKey || event.metaKey) {
-                            event.preventDefault(); // Prevent page scroll
+                            // Ctrl+Wheel = Zoom
+                            event.preventDefault();
                             return true;
+                        } else if (event.shiftKey) {
+                            // Shift+Wheel = Horizontal scroll
+                            event.preventDefault();
+                            const transform = d3.zoomTransform(svg.node());
+                            const newTransform = transform.translate(-event.deltaY * 0.5, 0);
+                            svg.call(zoom.transform, newTransform);
+                            return false;
+                        } else {
+                            // Normal Wheel = Vertical scroll
+                            event.preventDefault();
+                            const transform = d3.zoomTransform(svg.node());
+                            const newTransform = transform.translate(0, -event.deltaY * 0.5);
+                            svg.call(zoom.transform, newTransform);
+                            return false;
                         }
-                        return false; // Allow normal scroll without zoom
                     }
                     return true; // Allow other zoom interactions (drag, touch)
                 })
                 .on('zoom', (event) => {
                     mainGroup.attr('transform', `translate(${margin.left}, ${margin.top}) ${event.transform}`);
+                    updateMinimap(event.transform, sankeyData, width, height);
                 });
             
             svg.call(zoom);
@@ -2407,6 +2745,12 @@
             
             // Render with premium quality
             renderPremiumVisualization(svg, mainGroup, sankeyData, margin, innerWidth, innerHeight);
+            
+            // Add minimap for navigation
+            createMinimap(svg, sankeyData, width, height, margin, zoom);
+            
+            // Add layer navigation
+            createLayerNavigation(svg, sankeyData, width, height, margin, zoom);
             
             console.log('✨ WORLD-CLASS Premium Sankey completed!');
         }
@@ -2525,26 +2869,31 @@
         }
         
         function calculatePremiumPositions(sankeyData, width, height) {
-            const layerWidth = width / 5; // More spacing
+            const layerWidth = width / 5;
             const nodeWidth = 40;
             const minNodeHeight = 20;
             const maxNodeHeight = 80;
+            const nodeSpacing = 12;
+            
+            // Calculate required height for the largest layer
+            let maxRequiredHeight = 0;
             
             sankeyData.layers.forEach((layer, layerIndex) => {
                 const x = layerWidth * (layerIndex + 0.5);
-                const totalValue = d3.sum(layer, d => d.value);
-                const availableHeight = height - 100;
                 
                 // Premium scaling with square root for better proportions
                 const heightScale = d3.scaleSqrt()
                     .domain([1, d3.max(layer, d => d.value)])
                     .range([minNodeHeight, maxNodeHeight]);
                 
-                // Calculate total needed height
-                const totalNeededHeight = d3.sum(layer, d => heightScale(d.value)) + (layer.length - 1) * 8;
-                const startY = Math.max(20, (height - totalNeededHeight) / 2);
+                // Calculate total needed height for this layer
+                const totalNeededHeight = d3.sum(layer, d => heightScale(d.value)) + (layer.length - 1) * nodeSpacing;
+                maxRequiredHeight = Math.max(maxRequiredHeight, totalNeededHeight);
                 
+                // Position nodes with more generous spacing
+                const startY = 100; // Fixed top margin
                 let currentY = startY;
+                
                 layer.forEach(node => {
                     node.x = x - nodeWidth / 2;
                     node.y = currentY;
@@ -2552,9 +2901,16 @@
                     node.height = heightScale(node.value);
                     node.centerX = x;
                     node.centerY = currentY + node.height / 2;
-                    currentY += node.height + 8;
+                    currentY += node.height + nodeSpacing;
                 });
             });
+            
+            // Store the actual content dimensions for minimap
+            sankeyData.contentBounds = {
+                width: width,
+                height: maxRequiredHeight + 200, // Add bottom margin
+                actualHeight: Math.max(height, maxRequiredHeight + 200)
+            };
         }
         
         function renderPremiumVisualization(svg, mainGroup, sankeyData, margin, width, height) {
