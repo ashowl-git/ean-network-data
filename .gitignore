@@ -1,0 +1,58 @@
+# Sensitive Data Files
+*.xlsx
+*.xls
+*.csv
+
+# Backup Files
+backup/
+*.bak
+*.backup
+
+# Raw Data
+rawdata/
+raw_data/
+data_raw/
+
+# Archive Files
+archive/
+*.zip
+*.tar.gz
+*.gz
+
+# Test Files
+test.html
+*_test.*
+*_과거버젼.*
+
+# Development Scripts
+*.bat
+*.ps1
+*.sh
+update_*
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor Files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment Files
+.env
+.env.local
+.env.*.local
+
+# Temporary Files
+*.tmp
+*.temp
+temp/
+tmp/
