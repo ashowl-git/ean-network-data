@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" data-theme="dark">
+<html lang="ko" data-theme="light">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -28,11 +28,12 @@
   --f4:#84d06a; --f5:#54b6e8; --f6:#e879a6; --f7:#5fe0c0;
 }
 [data-theme="light"]{
-  --bg-0:#eef1f5; --bg-1:#f5f7fa; --bg-2:#ffffff;
-  --ink:#10161e; --ink-2:#42505f; --ink-3:#7a8896; --ink-4:#aab6c2;
-  --line:rgba(10,20,30,.10); --line-2:rgba(10,20,30,.16);
-  --glass:rgba(255,255,255,.7); --glass-2:rgba(255,255,255,.92);
-  --shadow:0 24px 60px -28px rgba(20,40,60,.30);
+  --bg-0:#eaeef3; --bg-1:#f3f6f9; --bg-2:#ffffff;
+  --ink:#0d141c; --ink-2:#37434f; --ink-3:#4d5965; --ink-4:#647280;
+  --line:rgba(12,22,33,.12); --line-2:rgba(12,22,33,.20);
+  --glass:rgba(255,255,255,.66); --glass-2:rgba(255,255,255,.92);
+  --shadow:0 24px 60px -28px rgba(20,40,60,.28);
+  --accent:#0b7d70;
 }
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%}
@@ -153,7 +154,7 @@ body{
 .row__rank{font-family:var(--mono);font-size:11px;color:var(--ink-4);width:18px;text-align:right;flex-shrink:0}
 .row__name{font-size:12.5px;color:var(--ink-2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row__bar{height:5px;border-radius:4px;flex-shrink:0;width:var(--w);min-width:6px;
-  background:linear-gradient(90deg,var(--accent),rgba(95,224,192,.35))}
+  background:var(--accent);opacity:.85}
 .row__n{font-family:var(--mono);font-size:11px;color:var(--ink);width:26px;text-align:right;flex-shrink:0}
 
 /* project list */
@@ -310,6 +311,7 @@ const SHORT={
 };
 const T=(s)=>String(s==null?"":s).trim();
 const short=(f)=>SHORT[f]||f.replace(/\s*분야\s*$/,"").trim()||f;
+function textOn(c){const col=d3.color(c);if(!col)return"#0a0e14";const L=0.299*col.r+0.587*col.g+0.114*col.b;return L>148?"#0a0e14":"#ffffff";}
 
 let RAW=[], FIELDS=[], colorOf=()=>"#888";
 let yearMin=2003, yearMax=2025, range=[2003,2025];
@@ -467,7 +469,7 @@ function updateGraph(initial){
     .merge(lsel)
     .attr("stroke",d=>{const s=byId.get(d.source.id||d.source)||{};return s.type==="core"?colorOf((byId.get(d.target.id||d.target)||{}).field):colorOf(s.field)})
     .attr("stroke-width",d=>d.core?Math.max(1,lw(d.weight)*.7):lw(d.weight))
-    .attr("stroke-opacity",d=>d.core?.3:.18);
+    .attr("stroke-opacity",d=>d.core?.34:.26);
 
   // nodes
   const nsel=gNode.selectAll("g.node").data(nodes,d=>d.id);
@@ -480,7 +482,7 @@ function updateGraph(initial){
   const all=ent.merge(nsel);
   all.select("circle")
     .attr("r",d=>d.r)
-    .attr("fill",d=>d.type==="core"?"rgba(234,240,246,.05)":d.type==="field"?colorOf(d.field):d3.color(colorOf(d.field)).copy({opacity:.5}))
+    .attr("fill",d=>d.type==="core"?"var(--glass-2)":d.type==="field"?colorOf(d.field):d3.color(colorOf(d.field)).copy({opacity:.5}))
     .attr("stroke",d=>d.type==="core"?"var(--ink)":colorOf(d.field))
     .attr("stroke-width",d=>d.type==="core"?1.5:d.type==="field"?0:1.2)
     .attr("stroke-opacity",d=>d.type==="core"?.8:.55)
@@ -488,7 +490,7 @@ function updateGraph(initial){
   all.select(".node__count")
     .attr("font-size",d=>d.type==="core"?15:d.type==="field"?Math.max(11,d.r*.5):0)
     .attr("opacity",d=>d.type==="field"?.92:d.type==="core"?1:0)
-    .attr("fill",d=>d.type==="core"?"var(--ink)":"var(--bg-0)")
+    .attr("fill",d=>d.type==="core"?"var(--ink)":textOn(colorOf(d.field)))
     .style("letter-spacing",d=>d.type==="core"?".14em":"normal")
     .text(d=>d.type==="core"?"EAN":d.type==="field"?d.count:"");
   all.select(".node__label")
@@ -562,7 +564,7 @@ function applyFocusStyles(){
     gLink.selectAll("path").attr("stroke-opacity",.1);
   }else{
     gNode.selectAll("g.node").style("opacity",1);
-    gLink.selectAll("path").attr("stroke-opacity",.18);
+    gLink.selectAll("path").attr("stroke-opacity",.26);
     gNode.selectAll(".svc-label").style("opacity",0);
   }
 }
