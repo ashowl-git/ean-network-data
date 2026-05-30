@@ -18,10 +18,9 @@
   --glass:rgba(255,255,255,.035); --glass-2:rgba(255,255,255,.06);
   --accent:#5fe0c0;
   --shadow:0 24px 60px -20px rgba(0,0,0,.7);
-  --r-s:8px; --r-m:14px; --r-l:22px;
-  --serif:'D2Coding','Pretendard',monospace;
-  --sans:'D2Coding','Pretendard',monospace;
-  --mono:'D2Coding','Pretendard',monospace;
+  --r-m:14px;
+  --font:'D2Coding','Pretendard',monospace;
+  --serif:var(--font); --sans:var(--font); --mono:var(--font);
   /* 8 field palette — luminous jewel tones on ink */
   --f0:#e6b450; --f1:#46c6b4; --f2:#f2785c; --f3:#9b8cff;
   --f4:#84d06a; --f5:#54b6e8; --f6:#e879a6; --f7:#5fe0c0;
@@ -90,8 +89,6 @@ body{
 .hero{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;padding:22px 30px 18px;flex-wrap:wrap}
 .hero__title{max-width:520px}
 .hero__eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--accent);text-transform:uppercase;margin:0 0 8px}
-.hero__h1{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.2vw,40px);line-height:1.08;margin:0;letter-spacing:-.01em}
-.hero__h1 em{font-style:italic;color:var(--accent)}
 .hero__lead{margin:10px 0 0;color:var(--ink-2);font-size:13.5px;line-height:1.6;max-width:480px}
 .stats{display:flex;gap:30px;flex-wrap:wrap}
 .stat{position:relative}
@@ -119,11 +116,11 @@ body{
 .link{fill:none;stroke-linecap:round;transition:stroke-opacity .3s}
 .node-hit{cursor:pointer}
 .node circle{transition:filter .25s}
-.node--field text{font-family:var(--sans);font-weight:600;fill:var(--ink);paint-order:stroke;
+.node--field text{font-family:var(--sans);font-weight:600;paint-order:stroke;
   stroke:var(--bg-0);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
-.node--service text{font-family:var(--sans);font-weight:500;fill:var(--ink-2);paint-order:stroke;
+.node--service text{font-family:var(--sans);font-weight:500;paint-order:stroke;
   stroke:var(--bg-0);stroke-width:2.5px;pointer-events:none;opacity:0;transition:opacity .2s}
-.node__count{font-family:var(--mono);fill:var(--bg-0);font-weight:600;pointer-events:none}
+.node__count{font-family:var(--mono);font-weight:600;pointer-events:none}
 
 /* right panel */
 .panel{border-left:1px solid var(--line);background:linear-gradient(180deg,var(--bg-1),var(--bg-0));
@@ -174,7 +171,6 @@ body{
 .timeline__sel{font-family:var(--mono);font-size:11px;color:var(--accent)}
 #timeSvg{width:100%;display:block;overflow:visible}
 .tl-year{font-family:var(--mono);font-size:9.5px;fill:var(--ink-4)}
-.tl-hit{fill:transparent;cursor:pointer}
 .tl-bar{transition:opacity .2s}
 
 /* tooltip */
@@ -215,7 +211,6 @@ body{
   .brand__sub{display:none}
   .search{order:3;flex-basis:100%;max-width:none}
   .hero{flex-direction:column;align-items:flex-start;gap:14px;padding:14px 16px 10px}
-  .hero__h1{font-size:25px}
   .hero__lead{display:none}
   .stats{gap:14px 22px}
   .stat__v{font-size:23px}
@@ -401,16 +396,16 @@ function computeGraph(){
     svcField.set(s,arr.sort((a,b)=>b[1]-a[1])[0][0]);
   });
   const fNodes=FIELDS.filter(f=>fCount.get(f)).map((f,i)=>({
-    id:"F:"+f,type:"field",field:f,label:short(f),count:fCount.get(f)||0,color:colorOf(f),
+    id:"F:"+f,type:"field",field:f,label:short(f),count:fCount.get(f)||0,
     angle:(i/FIELDS.length)*Math.PI*2
   }));
   const sNodes=[...sCount.keys()].map(s=>{
     const f=svcField.get(s);
-    return{id:"S:"+s,type:"service",field:f,service:s,label:s,count:sCount.get(s)||0,color:colorOf(f)};
+    return{id:"S:"+s,type:"service",field:f,service:s,label:s,count:sCount.get(s)||0};
   });
   const lk=d3.rollups(R,v=>v.length,r=>r.field,r=>r.service).flatMap(([f,arr])=>
     arr.map(([s,w])=>({source:"F:"+f,target:"S:"+s,weight:w})));
-  const core={id:"CORE",type:"core",field:null,label:"EAN",count:R.length,color:"#eaf0f6"};
+  const core={id:"CORE",type:"core",field:null,label:"EAN",count:R.length};
   const coreLinks=fNodes.map(f=>({source:"CORE",target:f.id,weight:f.count,core:true}));
   return {nodes:[core,...fNodes,...sNodes],links:[...coreLinks,...lk]};
 }
@@ -421,12 +416,6 @@ function buildGraph(){
   const W=box.width,H=box.height;
   svg.attr("viewBox",`0 0 ${W} ${H}`);
   svg.selectAll("*").remove();
-  const defs=svg.append("defs");
-  FIELDS.forEach(f=>{
-    const g=defs.append("radialGradient").attr("id","glow"+FIELDS.indexOf(f));
-    g.append("stop").attr("offset","0%").attr("stop-color",colorOf(f)).attr("stop-opacity",.9);
-    g.append("stop").attr("offset","100%").attr("stop-color",colorOf(f)).attr("stop-opacity",.15);
-  });
   zoomG=svg.append("g");
   gLink=zoomG.append("g").attr("class","links");
   gNode=zoomG.append("g").attr("class","nodes");
@@ -480,8 +469,8 @@ function updateGraph(initial){
   const all=ent.merge(nsel);
   all.select("circle")
     .attr("r",d=>d.r)
-    .attr("fill",d=>d.type==="core"?"var(--glass-2)":d.type==="field"?colorOf(d.field):d3.color(colorOf(d.field)).copy({opacity:.5}))
-    .attr("stroke",d=>d.type==="core"?"var(--ink)":colorOf(d.field))
+    .style("fill",d=>d.type==="core"?"var(--glass-2)":d.type==="field"?colorOf(d.field):d3.color(colorOf(d.field)).copy({opacity:.5}))
+    .style("stroke",d=>d.type==="core"?"var(--ink)":colorOf(d.field))
     .attr("stroke-width",d=>d.type==="core"?1.5:d.type==="field"?0:1.2)
     .attr("stroke-opacity",d=>d.type==="core"?.8:.55)
     .style("filter",d=>d.type==="field"?`drop-shadow(0 0 12px ${d3.color(colorOf(d.field)).copy({opacity:.55})})`:d.type==="core"?"drop-shadow(0 0 18px rgba(234,240,246,.22))":"none");
@@ -495,13 +484,13 @@ function updateGraph(initial){
     .attr("font-size",d=>d.type==="field"?13:11)
     .attr("dy",d=>d.r+15)
     .attr("class",d=>"node__label "+(d.type==="field"?"":"svc-label"))
-    .attr("fill",d=>d.type==="field"?"var(--ink)":"var(--ink-2)")
+    .style("fill",d=>d.type==="field"?"var(--ink)":"var(--ink-2)")
     .style("paint-order","stroke").style("stroke","var(--bg-0)").style("stroke-width",d=>d.type==="field"?"3px":"2.5px")
     .style("font-weight",d=>d.type==="field"?600:500)
     .style("font-family","var(--sans)")
     .style("opacity",d=>d.type==="field"?1:0)
     .style("pointer-events","none")
-    .text(d=>d.type==="field"?d.label:d.label);
+    .text(d=>d.label);
 
   all.on("mouseenter",(e,d)=>nodeHover(e,d,true)).on("mousemove",moveTip)
      .on("mouseleave",(e,d)=>nodeHover(e,d,false))
@@ -644,14 +633,14 @@ function drawTimeline(){
   const g=svgT.append("g");
   g.selectAll(".tl-bar").data(data).enter().append("rect").attr("class","tl-bar")
     .attr("x",d=>x(d.year)).attr("width",x.bandwidth()).attr("y",d=>y(d.n)).attr("height",d=>H-mb-y(d.n))
-    .attr("rx",2).attr("fill","var(--accent)")
+    .attr("rx",2).style("fill","var(--accent)")
     .attr("opacity",d=>d.year>=range[0]&&d.year<=range[1]?.85:.2);
   g.selectAll(".tl-year").data(data).enter().append("text").attr("class","tl-year")
     .attr("x",d=>x(d.year)+x.bandwidth()/2).attr("y",H-5).attr("text-anchor","middle")
     .text(d=>(d.year%5===0||d.year===yearMin||d.year===yearMax)?("’"+String(d.year).slice(2)):"");
   // brush
   const brush=d3.brushX().extent([[0,0],[W,H-mb]]).on("end",brushed);
-  const bg=svgT.append("g").attr("class","brush").call(brush);
+  svgT.append("g").attr("class","brush").call(brush);
   function brushed(ev){
     if(!ev.selection){range=[yearMin,yearMax]}
     else{const[a,b]=ev.selection;
@@ -674,7 +663,7 @@ function buildLegendCounts(){
 
 /* ---------------- search / wire ---------------- */
 function wire(){
-  const s=document.getElementById("search"),sc=document.getElementById("searchCount");
+  const s=document.getElementById("search");
   let to;
   s.addEventListener("input",()=>{clearTimeout(to);to=setTimeout(()=>runSearch(s.value),160)});
   document.getElementById("resetBtn").onclick=resetAll;
