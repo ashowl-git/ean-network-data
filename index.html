@@ -6,10 +6,9 @@
 <meta name="description" content="EAN Observatory — 환경·생태·에너지 건축 그룹의 20년 실적 별자리. 503개 프로젝트, 247개 발주처, 2003–2025." />
 <title>EAN Observatory · 실적 별자리</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wan2land/d2coding/d2coding-subset.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
 
 <style>
 :root{
@@ -20,9 +19,9 @@
   --accent:#5fe0c0;
   --shadow:0 24px 60px -20px rgba(0,0,0,.7);
   --r-s:8px; --r-m:14px; --r-l:22px;
-  --serif:'Fraunces',Georgia,serif;
-  --sans:'Pretendard','Pretendard Variable',system-ui,sans-serif;
-  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --serif:'D2Coding','Pretendard',monospace;
+  --sans:'D2Coding','Pretendard',monospace;
+  --mono:'D2Coding','Pretendard',monospace;
   /* 8 field palette — luminous jewel tones on ink */
   --f0:#e6b450; --f1:#46c6b4; --f2:#f2785c; --f3:#9b8cff;
   --f4:#84d06a; --f5:#54b6e8; --f6:#e879a6; --f7:#5fe0c0;
@@ -258,7 +257,6 @@ body{
   <section class="hero">
     <div class="hero__title reveal d2">
       <p class="hero__eyebrow">2003 — 2025 · 23 YEARS</p>
-      <h1 class="hero__h1">환경건축 실적의 <em>별자리</em></h1>
       <p class="hero__lead">EAN이 20여 년간 수행한 모든 프로젝트를 분야와 용역으로 엮어 하나의 지형으로 펼칩니다. 노드를 누르면 그 영역의 실적이 열립니다.</p>
     </div>
     <div class="stats reveal d4" id="stats"></div>
@@ -490,7 +488,7 @@ function updateGraph(initial){
   all.select(".node__count")
     .attr("font-size",d=>d.type==="core"?15:d.type==="field"?Math.max(11,d.r*.5):0)
     .attr("opacity",d=>d.type==="field"?.92:d.type==="core"?1:0)
-    .attr("fill",d=>d.type==="core"?"var(--ink)":textOn(colorOf(d.field)))
+    .style("fill",d=>d.type==="core"?"var(--ink)":textOn(colorOf(d.field)))
     .style("letter-spacing",d=>d.type==="core"?".14em":"normal")
     .text(d=>d.type==="core"?"EAN":d.type==="field"?d.count:"");
   all.select(".node__label")
