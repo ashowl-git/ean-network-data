@@ -1,3599 +1,709 @@
 <!DOCTYPE html>
 <html lang="ko" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="EAN 환경·생태·에너지 분야 건축인 그룹의 네트워크 시각화">
-    <title>EAN Network Explorer</title>
-    
-    <!-- Preload critical resources -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    
-    
-    <style>
-        /* ==========================================
-           CSS CUSTOM PROPERTIES & DESIGN SYSTEM
-        ========================================== */
-        :root {
-            /* Brand Colors */
-            --ean-primary: #2563eb;
-            --ean-primary-light: #60a5fa;
-            --ean-primary-dark: #1d4ed8;
-            --ean-secondary: #10b981;
-            --ean-accent: #f59e0b;
-            
-            /* Light Theme */
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8fafc;
-            --bg-tertiary: #f1f5f9;
-            --surface: #ffffff;
-            --surface-variant: #f1f5f9;
-            --surface-hover: #f8fafc;
-            
-            /* Text Colors */
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --text-tertiary: #64748b;
-            --text-inverse: #ffffff;
-            
-            /* Border Colors */
-            --border-primary: #e2e8f0;
-            --border-secondary: #cbd5e1;
-            --border-focus: var(--ean-primary);
-            
-            /* Semantic Colors */
-            --success: #10b981;
-            --warning: #f59e0b;
-            --error: #ef4444;
-            --info: var(--ean-primary);
-            
-            /* Shadows */
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-            
-            /* Typography */
-            --font-size-xs: 0.75rem;
-            --font-size-sm: 0.875rem;
-            --font-size-base: 1rem;
-            --font-size-lg: 1.125rem;
-            --font-size-xl: 1.25rem;
-            --font-size-2xl: 1.5rem;
-            --font-size-3xl: 1.875rem;
-            
-            --font-weight-normal: 400;
-            --font-weight-medium: 500;
-            --font-weight-semibold: 600;
-            --font-weight-bold: 700;
-            
-            /* Spacing */
-            --space-1: 0.25rem;
-            --space-2: 0.5rem;
-            --space-3: 0.75rem;
-            --space-4: 1rem;
-            --space-5: 1.25rem;
-            --space-6: 1.5rem;
-            --space-8: 2rem;
-            --space-10: 2.5rem;
-            --space-12: 3rem;
-            
-            /* Border Radius */
-            --radius-sm: 0.375rem;
-            --radius-md: 0.5rem;
-            --radius-lg: 0.75rem;
-            --radius-xl: 1rem;
-            --radius-full: 9999px;
-            
-            /* Transitions */
-            --transition-fast: 150ms ease-out;
-            --transition-normal: 250ms ease-out;
-            --transition-slow: 350ms ease-out;
-            
-            /* Z-Index Scale */
-            --z-dropdown: 50;
-            --z-modal: 100;
-            --z-toast: 200;
-        }
-        
-        /* Dark Theme */
-        [data-theme="dark"] {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-tertiary: #334155;
-            --surface: #1e293b;
-            --surface-variant: #334155;
-            --surface-hover: #475569;
-            
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e1;
-            --text-tertiary: #94a3b8;
-            --text-inverse: #0f172a;
-            
-            --border-primary: #334155;
-            --border-secondary: #475569;
-        }
-        
-        /* ==========================================
-           RESET & BASE STYLES
-        ========================================== */
-        *, *::before, *::after {
-            box-sizing: border-box;
-        }
-        
-        html {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-            scroll-behavior: smooth;
-        }
-        
-        body {
-            margin: 0;
-            font-size: var(--font-size-base);
-            line-height: 1.6;
-            color: var(--text-primary);
-            background: var(--bg-primary);
-            overflow: hidden;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-        
-        /* ==========================================
-           LAYOUT COMPONENTS
-        ========================================== */
-        .app {
-            display: grid;
-            grid-template-rows: auto 1fr;
-            height: 100vh;
-            background: var(--bg-primary);
-        }
-        
-        /* Header */
-        .header {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            align-items: center;
-            gap: var(--space-4);
-            padding: var(--space-4) var(--space-6);
-            background: var(--surface);
-            border-bottom: 1px solid var(--border-primary);
-            box-shadow: var(--shadow-sm);
-            position: relative;
-            z-index: var(--z-dropdown);
-        }
-        
-        .header__brand {
-            font-size: var(--font-size-xl);
-            font-weight: var(--font-weight-bold);
-            color: var(--ean-primary);
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-        }
-        
-        .header__brand::before {
-            content: '';
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, var(--ean-primary), var(--ean-secondary));
-            border-radius: var(--radius-md);
-            flex-shrink: 0;
-        }
-        
-        .header__search {
-            max-width: 600px;
-            position: relative;
-        }
-        
-        .search-container {
-            position: relative;
-        }
-        
-        .search-input {
-            width: 100%;
-            padding: var(--space-3) var(--space-4);
-            padding-left: var(--space-12);
-            border: 1px solid var(--border-primary);
-            border-radius: var(--radius-xl);
-            background: var(--surface);
-            color: var(--text-primary);
-            font-size: var(--font-size-base);
-            transition: all var(--transition-normal);
-            outline: none;
-        }
-        
-        .search-input:focus {
-            border-color: var(--border-focus);
-            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
-        }
-        
-        .search-input::placeholder {
-            color: var(--text-tertiary);
-        }
-        
-        .search-icon {
-            position: absolute;
-            left: var(--space-4);
-            top: 50%;
-            transform: translateY(-50%);
-            width: 20px;
-            height: 20px;
-            color: var(--text-tertiary);
-            pointer-events: none;
-        }
-        
-        .search-shortcut {
-            position: absolute;
-            right: var(--space-4);
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--surface-variant);
-            padding: var(--space-1) var(--space-2);
-            border-radius: var(--radius-sm);
-            font-size: var(--font-size-xs);
-            color: var(--text-tertiary);
-            pointer-events: none;
-        }
-        
-        .header__actions {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-        }
-        
-        .theme-toggle, .menu-toggle, .help-toggle {
-            width: 40px;
-            height: 40px;
-            border: none;
-            border-radius: var(--radius-md);
-            background: var(--surface-variant);
-            color: var(--text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-fast);
-        }
-        
-        .theme-toggle:hover, .menu-toggle:hover, .help-toggle:hover {
-            background: var(--surface-hover);
-            color: var(--text-primary);
-        }
-        
-        /* View Mode Selector */
-        .view-mode-selector {
-            display: flex;
-            background: var(--surface-variant);
-            border-radius: var(--radius-md);
-            padding: 2px;
-            gap: 2px;
-        }
-        
-        .view-mode-btn {
-            width: 36px;
-            height: 36px;
-            border: none;
-            border-radius: calc(var(--radius-md) - 2px);
-            background: transparent;
-            color: var(--text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-fast);
-            position: relative;
-        }
-        
-        .view-mode-btn:hover {
-            background: var(--surface-hover);
-            color: var(--text-primary);
-        }
-        
-        .view-mode-btn.active {
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            box-shadow: var(--shadow-sm);
-        }
-        
-        /* Main Content Area */
-        .main {
-            position: relative;
-            overflow: hidden;
-            background: var(--bg-secondary);
-        }
-        
-        .graph-viewport {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
-        
-        .graph-canvas {
-            width: 100%;
-            height: 100%;
-            cursor: grab;
-        }
-        
-        .graph-canvas:active {
-            cursor: grabbing;
-        }
-        
-        /* ==========================================
-           FLOATING UI COMPONENTS
-        ========================================== */
-        .floating-stats {
-            position: absolute;
-            bottom: var(--space-6);
-            left: var(--space-6);
-            background: var(--surface);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border-primary);
-            border-radius: var(--radius-lg);
-            padding: var(--space-4);
-            box-shadow: var(--shadow-lg);
-            z-index: 10;
-            min-width: 200px;
-        }
-        
-        .stats-title {
-            font-size: var(--font-size-sm);
-            font-weight: var(--font-weight-semibold);
-            color: var(--text-secondary);
-            margin-bottom: var(--space-3);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        
-        .stats-grid {
-            display: grid;
-            gap: var(--space-2);
-        }
-        
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: var(--space-2) 0;
-        }
-        
-        .stat-label {
-            font-size: var(--font-size-sm);
-            color: var(--text-secondary);
-        }
-        
-        .stat-value {
-            font-size: var(--font-size-sm);
-            font-weight: var(--font-weight-semibold);
-            color: var(--text-primary);
-        }
-        
-        .controls-panel {
-            position: absolute;
-            top: var(--space-6);
-            right: var(--space-6);
-            background: var(--surface);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border-primary);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
-            z-index: 10;
-            max-width: 320px;
-            transform: translateX(100%);
-            transition: transform var(--transition-normal);
-        }
-        
-        .controls-panel[data-state="expanded"] {
-            transform: translateX(0);
-        }
-        
-        .controls-toggle {
-            position: absolute;
-            left: -40px;
-            top: 0;
-            width: 40px;
-            height: 40px;
-            background: var(--surface);
-            border: 1px solid var(--border-primary);
-            border-right: none;
-            border-radius: var(--radius-md) 0 0 var(--radius-md);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            transition: all var(--transition-fast);
-        }
-        
-        .controls-toggle:hover {
-            background: var(--surface-hover);
-            color: var(--text-primary);
-        }
-        
-        .controls-content {
-            padding: var(--space-6);
-        }
-        
-        .control-section {
-            margin-bottom: var(--space-6);
-        }
-        
-        .control-section:last-child {
-            margin-bottom: 0;
-        }
-        
-        .control-title {
-            font-size: var(--font-size-sm);
-            font-weight: var(--font-weight-semibold);
-            color: var(--text-primary);
-            margin-bottom: var(--space-3);
-        }
-        
-        .filter-group {
-            display: grid;
-            gap: var(--space-3);
-        }
-        
-        .year-range {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--space-3);
-        }
-        
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-1);
-        }
-        
-        .input-label {
-            font-size: var(--font-size-xs);
-            font-weight: var(--font-weight-medium);
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        
-        .form-select, .form-input {
-            padding: var(--space-2) var(--space-3);
-            border: 1px solid var(--border-primary);
-            border-radius: var(--radius-md);
-            background: var(--surface);
-            color: var(--text-primary);
-            font-size: var(--font-size-sm);
-            transition: border-color var(--transition-fast);
-        }
-        
-        .form-select:focus, .form-input:focus {
-            outline: none;
-            border-color: var(--border-focus);
-        }
-        
-        /* ==========================================
-           LOADING & SKELETON STATES
-        ========================================== */
-        .loading-overlay {
-            position: absolute;
-            inset: 0;
-            background: var(--bg-primary);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: var(--z-modal);
-            opacity: 1;
-            transition: opacity var(--transition-slow);
-        }
-        
-        .loading-overlay[data-state="hidden"] {
-            opacity: 0;
-            pointer-events: none;
-        }
-        
-        .loading-spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid var(--border-primary);
-            border-top-color: var(--ean-primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        .loading-text {
-            margin-top: var(--space-6);
-            text-align: center;
-        }
-        
-        .loading-title {
-            font-size: var(--font-size-lg);
-            font-weight: var(--font-weight-semibold);
-            color: var(--text-primary);
-            margin-bottom: var(--space-2);
-        }
-        
-        .loading-subtitle {
-            font-size: var(--font-size-sm);
-            color: var(--text-secondary);
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* ==========================================
-           TOOLTIP & CONTEXT MENU
-        ========================================== */
-        .tooltip {
-            position: absolute;
-            background: var(--text-primary);
-            color: var(--text-inverse);
-            padding: var(--space-2) var(--space-3);
-            border-radius: var(--radius-md);
-            font-size: var(--font-size-sm);
-            pointer-events: none;
-            z-index: var(--z-toast);
-            opacity: 0;
-            transform: translate(-50%, -100%) translateY(-8px);
-            transition: opacity var(--transition-fast);
-        }
-        
-        .tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 4px solid transparent;
-            border-top-color: var(--text-primary);
-        }
-        
-        .tooltip[data-show="true"] {
-            opacity: 1;
-        }
-        
-        /* ==========================================
-           RESPONSIVE DESIGN
-        ========================================== */
-        @media (max-width: 768px) {
-            .header {
-                grid-template-columns: 1fr auto;
-                gap: var(--space-3);
-                padding: var(--space-3) var(--space-4);
-            }
-            
-            .header__brand {
-                font-size: var(--font-size-lg);
-            }
-            
-            .header__search {
-                grid-column: 1 / -1;
-                grid-row: 2;
-                margin-top: var(--space-3);
-            }
-            
-            .controls-panel {
-                position: fixed;
-                top: auto;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                max-width: none;
-                border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-                transform: translateY(100%);
-            }
-            
-            .controls-panel[data-state="expanded"] {
-                transform: translateY(0);
-            }
-            
-            .controls-toggle {
-                position: absolute;
-                left: 50%;
-                top: -40px;
-                transform: translateX(-50%);
-                border: 1px solid var(--border-primary);
-                border-bottom: none;
-                border-radius: var(--radius-md) var(--radius-md) 0 0;
-            }
-            
-            .floating-stats {
-                bottom: var(--space-4);
-                left: var(--space-4);
-                right: var(--space-4);
-                min-width: unset;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .header {
-                padding: var(--space-2) var(--space-3);
-            }
-            
-            .header__brand::before {
-                width: 24px;
-                height: 24px;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        
-        /* ==========================================
-           ACCESSIBILITY
-        ========================================== */
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-            
-            html {
-                scroll-behavior: auto;
-            }
-        }
-        
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-        
-        /* Focus styles */
-        *:focus-visible {
-            outline: 2px solid var(--border-focus);
-            outline-offset: 2px;
-        }
-        
-        /* High contrast mode support */
-        @media (prefers-contrast: high) {
-            :root {
-                --border-primary: #000000;
-                --border-secondary: #000000;
-                --text-secondary: #000000;
-            }
-            
-            [data-theme="dark"] {
-                --border-primary: #ffffff;
-                --border-secondary: #ffffff;
-                --text-secondary: #ffffff;
-            }
-        }
-        
-        /* ==========================================
-           HELP MODAL STYLES
-        ========================================== */
-        .help-modal {
-            position: fixed;
-            inset: 0;
-            z-index: var(--z-modal);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: var(--space-4);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity var(--transition-normal), visibility var(--transition-normal);
-        }
-        
-        .help-modal[data-state="open"] {
-            opacity: 1;
-            visibility: visible;
-        }
-        
-        .help-modal-backdrop {
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
-        }
-        
-        .help-modal-content {
-            position: relative;
-            background: var(--surface);
-            border-radius: var(--radius-xl);
-            box-shadow: var(--shadow-xl);
-            max-width: 600px;
-            max-height: 80vh;
-            width: 100%;
-            overflow: hidden;
-            transform: scale(0.95);
-            transition: transform var(--transition-normal);
-        }
-        
-        .help-modal[data-state="open"] .help-modal-content {
-            transform: scale(1);
-        }
-        
-        .help-modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: var(--space-6);
-            border-bottom: 1px solid var(--border-primary);
-            background: var(--bg-secondary);
-        }
-        
-        .help-modal-title {
-            margin: 0;
-            font-size: var(--font-size-xl);
-            font-weight: var(--font-weight-bold);
-            color: var(--text-primary);
-        }
-        
-        .help-modal-close {
-            width: 40px;
-            height: 40px;
-            border: none;
-            border-radius: var(--radius-md);
-            background: transparent;
-            color: var(--text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-fast);
-        }
-        
-        .help-modal-close:hover {
-            background: var(--surface-hover);
-            color: var(--text-primary);
-        }
-        
-        .help-modal-body {
-            padding: var(--space-6);
-            max-height: calc(80vh - 100px);
-            overflow-y: auto;
-        }
-        
-        .help-section {
-            display: flex;
-            gap: var(--space-4);
-            margin-bottom: var(--space-6);
-        }
-        
-        .help-section:last-child {
-            margin-bottom: 0;
-        }
-        
-        .help-section-icon {
-            font-size: var(--font-size-2xl);
-            line-height: 1;
-            flex-shrink: 0;
-            margin-top: var(--space-1);
-        }
-        
-        .help-section-content {
-            flex: 1;
-        }
-        
-        .help-section-title {
-            margin: 0 0 var(--space-3) 0;
-            font-size: var(--font-size-lg);
-            font-weight: var(--font-weight-semibold);
-            color: var(--text-primary);
-        }
-        
-        .help-list {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
-        
-        .help-list li {
-            margin-bottom: var(--space-2);
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-        
-        .help-list li:last-child {
-            margin-bottom: 0;
-        }
-        
-        .help-list kbd {
-            display: inline-block;
-            padding: var(--space-1) var(--space-2);
-            background: var(--surface-variant);
-            border: 1px solid var(--border-primary);
-            border-radius: var(--radius-sm);
-            font-family: inherit;
-            font-size: var(--font-size-xs);
-            font-weight: var(--font-weight-semibold);
-            color: var(--text-primary);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        
-        .help-list strong {
-            color: var(--text-primary);
-            font-weight: var(--font-weight-semibold);
-        }
-        
-        /* Dependent dropdown animations and feedback */
-        .filter-group select {
-            transition: all 0.2s ease;
-        }
-        
-        .filter-group select:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            background-color: var(--surface-variant);
-        }
-        
-        .filter-group label {
-            transition: opacity 0.2s ease;
-        }
-        
-        .dropdown-loading {
-            position: relative;
-        }
-        
-        .dropdown-loading::after {
-            content: '';
-            position: absolute;
-            right: 30px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 12px;
-            height: 12px;
-            border: 2px solid var(--border-primary);
-            border-top: 2px solid var(--accent-primary);
-            border-radius: 50%;
-            animation: dropdown-spin 1s linear infinite;
-        }
-        
-        @keyframes dropdown-spin {
-            0% { transform: translateY(-50%) rotate(0deg); }
-            100% { transform: translateY(-50%) rotate(360deg); }
-        }
-        
-        .option-count {
-            color: var(--text-secondary);
-            font-size: var(--font-size-xs);
-            font-weight: normal;
-        }
-        
-        /* Mobile responsive */
-        @media (max-width: 768px) {
-            .help-modal {
-                padding: var(--space-2);
-            }
-            
-            .help-modal-content {
-                max-height: 90vh;
-            }
-            
-            .help-modal-header,
-            .help-modal-body {
-                padding: var(--space-4);
-            }
-            
-            .help-section {
-                gap: var(--space-3);
-                margin-bottom: var(--space-4);
-            }
-            
-            .help-section-icon {
-                font-size: var(--font-size-xl);
-            }
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="EAN Observatory — 환경·생태·에너지 건축 그룹의 20년 실적 별자리. 503개 프로젝트, 247개 발주처, 2003–2025." />
+<title>EAN Observatory · 실적 별자리</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
+
+<style>
+:root{
+  --bg-0:#070a0f; --bg-1:#0b0f16; --bg-2:#0f141d;
+  --ink:#eaf0f6; --ink-2:#9fb0c0; --ink-3:#5d6b7a; --ink-4:#3a4452;
+  --line:rgba(255,255,255,.07); --line-2:rgba(255,255,255,.12);
+  --glass:rgba(255,255,255,.035); --glass-2:rgba(255,255,255,.06);
+  --accent:#5fe0c0;
+  --shadow:0 24px 60px -20px rgba(0,0,0,.7);
+  --r-s:8px; --r-m:14px; --r-l:22px;
+  --serif:'Fraunces',Georgia,serif;
+  --sans:'Pretendard','Pretendard Variable',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  /* 8 field palette — luminous jewel tones on ink */
+  --f0:#e6b450; --f1:#46c6b4; --f2:#f2785c; --f3:#9b8cff;
+  --f4:#84d06a; --f5:#54b6e8; --f6:#e879a6; --f7:#5fe0c0;
+}
+[data-theme="light"]{
+  --bg-0:#eef1f5; --bg-1:#f5f7fa; --bg-2:#ffffff;
+  --ink:#10161e; --ink-2:#42505f; --ink-3:#7a8896; --ink-4:#aab6c2;
+  --line:rgba(10,20,30,.10); --line-2:rgba(10,20,30,.16);
+  --glass:rgba(255,255,255,.7); --glass-2:rgba(255,255,255,.92);
+  --shadow:0 24px 60px -28px rgba(20,40,60,.30);
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;font-family:var(--sans);color:var(--ink);
+  background:var(--bg-0);overflow:hidden;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+/* ---------- atmosphere ---------- */
+.bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.bg::before{content:"";position:absolute;inset:-20%;
+  background:
+    radial-gradient(40% 50% at 18% 22%, rgba(95,224,192,.10), transparent 60%),
+    radial-gradient(36% 46% at 82% 30%, rgba(155,140,255,.10), transparent 60%),
+    radial-gradient(50% 50% at 70% 88%, rgba(242,120,92,.07), transparent 60%),
+    radial-gradient(40% 40% at 30% 85%, rgba(84,182,232,.07), transparent 60%);
+  filter:saturate(115%);}
+.bg__grid{position:absolute;inset:0;opacity:.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:44px 44px;mask-image:radial-gradient(ellipse 90% 80% at 50% 40%,#000 30%,transparent 85%);}
+.bg__grain{position:absolute;inset:0;opacity:.04;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* ---------- shell ---------- */
+.app{position:relative;z-index:1;height:100vh;overflow:hidden;max-width:100vw;display:grid;
+  grid-template-rows:auto auto 1fr auto;gap:0}
+/* header */
+.hdr{display:flex;align-items:center;gap:20px;padding:16px 26px;border-bottom:1px solid var(--line);
+  backdrop-filter:blur(8px);background:linear-gradient(var(--bg-1),transparent)}
+.brand{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.brand__mark{width:34px;height:34px;border-radius:10px;position:relative;flex-shrink:0;
+  background:conic-gradient(from 200deg,var(--f7),var(--f5),var(--f3),var(--f6),var(--f0),var(--f7));
+  box-shadow:0 0 0 1px var(--line-2),0 8px 24px -8px rgba(95,224,192,.5)}
+.brand__mark::after{content:"";position:absolute;inset:7px;border-radius:5px;background:var(--bg-0)}
+.brand__mark::before{content:"";position:absolute;inset:13px;border-radius:50%;background:var(--ink);z-index:2}
+.brand__txt{line-height:1.05}
+.brand__name{font-family:var(--mono);font-weight:600;letter-spacing:.16em;font-size:14px}
+.brand__sub{font-size:10.5px;color:var(--ink-3);letter-spacing:.22em;text-transform:uppercase;font-family:var(--mono)}
+.search{flex:1;min-width:0;max-width:440px;position:relative;margin:0 auto}
+.search input{width:100%;min-width:0;height:42px;padding:0 16px 0 42px;border-radius:var(--r-m);
+  background:var(--glass);border:1px solid var(--line);color:var(--ink);font-family:var(--sans);font-size:14px;
+  transition:border-color .2s,background .2s,box-shadow .2s}
+.search input::placeholder{color:var(--ink-3)}
+.search input:focus{outline:none;border-color:var(--accent);background:var(--glass-2);
+  box-shadow:0 0 0 4px rgba(95,224,192,.10)}
+.search__icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--ink-3);pointer-events:none}
+.search__count{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:11px;color:var(--accent);opacity:0;transition:opacity .2s}
+.hdr__actions{display:flex;gap:8px;flex-shrink:0}
+.iconbtn{width:40px;height:40px;display:grid;place-items:center;border-radius:11px;cursor:pointer;
+  background:var(--glass);border:1px solid var(--line);color:var(--ink-2);transition:.18s}
+.iconbtn:hover{color:var(--ink);border-color:var(--line-2);background:var(--glass-2);transform:translateY(-1px)}
+.iconbtn svg{width:18px;height:18px}
+
+/* hero stat band */
+.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;padding:22px 30px 18px;flex-wrap:wrap}
+.hero__title{max-width:520px}
+.hero__eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--accent);text-transform:uppercase;margin:0 0 8px}
+.hero__h1{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.2vw,40px);line-height:1.08;margin:0;letter-spacing:-.01em}
+.hero__h1 em{font-style:italic;color:var(--accent)}
+.hero__lead{margin:10px 0 0;color:var(--ink-2);font-size:13.5px;line-height:1.6;max-width:480px}
+.stats{display:flex;gap:30px;flex-wrap:wrap}
+.stat{position:relative}
+.stat__v{font-family:var(--serif);font-weight:400;font-size:clamp(28px,3vw,42px);line-height:1;letter-spacing:-.02em}
+.stat__l{margin-top:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase}
+.stat__v .u{font-family:var(--mono);font-size:.42em;color:var(--ink-3);margin-left:3px;letter-spacing:0}
+
+/* main split */
+.main{display:grid;grid-template-columns:1fr 372px;min-height:0;border-top:1px solid var(--line)}
+.stage{position:relative;min-width:0;overflow:hidden}
+#viz{width:100%;height:100%;display:block;cursor:grab}
+#viz:active{cursor:grabbing}
+.stage__hint{position:absolute;left:22px;bottom:18px;font-family:var(--mono);font-size:10.5px;color:var(--ink-4);letter-spacing:.05em;pointer-events:none}
+.legend{position:absolute;left:22px;top:20px;display:flex;flex-direction:column;gap:7px;max-width:230px}
+.legend__t{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase;margin-bottom:3px}
+.lg{display:flex;align-items:center;gap:9px;padding:5px 9px;border-radius:9px;cursor:pointer;border:1px solid transparent;transition:.16s}
+.lg:hover{background:var(--glass);border-color:var(--line)}
+.lg.dim{opacity:.32}
+.lg.on{background:var(--glass-2);border-color:var(--line-2)}
+.lg__dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:0 0 10px var(--c)}
+.lg__name{font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg__n{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto;flex-shrink:0}
+
+/* node + link svg styling */
+.link{fill:none;stroke-linecap:round;transition:stroke-opacity .3s}
+.node-hit{cursor:pointer}
+.node circle{transition:filter .25s}
+.node--field text{font-family:var(--sans);font-weight:600;fill:var(--ink);paint-order:stroke;
+  stroke:var(--bg-0);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.node--service text{font-family:var(--sans);font-weight:500;fill:var(--ink-2);paint-order:stroke;
+  stroke:var(--bg-0);stroke-width:2.5px;pointer-events:none;opacity:0;transition:opacity .2s}
+.node__count{font-family:var(--mono);fill:var(--bg-0);font-weight:600;pointer-events:none}
+
+/* right panel */
+.panel{border-left:1px solid var(--line);background:linear-gradient(180deg,var(--bg-1),var(--bg-0));
+  display:flex;flex-direction:column;min-height:0}
+.panel__scroll{overflow-y:auto;padding:20px 20px 26px;display:flex;flex-direction:column;gap:22px}
+.panel__scroll::-webkit-scrollbar{width:8px}
+.panel__scroll::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px}
+.sect__h{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 12px}
+.sect__t{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase}
+.sect__a{font-family:var(--mono);font-size:11px;color:var(--accent)}
+
+/* selected field card */
+.fcard{border-radius:var(--r-m);border:1px solid var(--line);overflow:hidden;background:var(--glass)}
+.fcard__top{padding:16px 16px 14px;position:relative}
+.fcard__bar{height:3px;width:100%}
+.fcard__name{font-family:var(--serif);font-size:20px;line-height:1.1;margin:0}
+.fcard__meta{margin-top:4px;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 16px}
+.chip{font-size:11.5px;padding:5px 10px;border-radius:20px;background:var(--glass-2);border:1px solid var(--line);
+  color:var(--ink-2);cursor:pointer;transition:.15s;display:flex;gap:6px;align-items:center}
+.chip:hover{border-color:var(--line-2);color:var(--ink)}
+.chip b{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+
+/* leaderboard / bars */
+.row{display:flex;align-items:center;gap:11px;padding:7px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row__rank{font-family:var(--mono);font-size:11px;color:var(--ink-4);width:18px;text-align:right;flex-shrink:0}
+.row__name{font-size:12.5px;color:var(--ink-2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row__bar{height:5px;border-radius:4px;flex-shrink:0;width:var(--w);min-width:6px;
+  background:linear-gradient(90deg,var(--accent),rgba(95,224,192,.35))}
+.row__n{font-family:var(--mono);font-size:11px;color:var(--ink);width:26px;text-align:right;flex-shrink:0}
+
+/* project list */
+.plist{display:flex;flex-direction:column;gap:2px}
+.pitem{padding:9px 11px;border-radius:10px;border:1px solid transparent;cursor:default;transition:.14s}
+.pitem:hover{background:var(--glass);border-color:var(--line)}
+.pitem__top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.pitem__name{font-size:12.5px;color:var(--ink);line-height:1.35}
+.pitem__yr{font-family:var(--mono);font-size:11px;color:var(--ink-3);flex-shrink:0}
+.pitem__sub{margin-top:3px;font-size:11px;color:var(--ink-3);display:flex;gap:8px;align-items:center}
+.pitem__tag{display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.empty{color:var(--ink-3);font-size:12.5px;text-align:center;padding:26px 10px;font-family:var(--sans)}
+
+/* timeline ribbon */
+.timeline{border-top:1px solid var(--line);background:linear-gradient(0deg,var(--bg-1),transparent);padding:12px 30px 16px}
+.timeline__h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2px}
+.timeline__t{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase}
+.timeline__sel{font-family:var(--mono);font-size:11px;color:var(--accent)}
+#timeSvg{width:100%;display:block;overflow:visible}
+.tl-year{font-family:var(--mono);font-size:9.5px;fill:var(--ink-4)}
+.tl-hit{fill:transparent;cursor:pointer}
+.tl-bar{transition:opacity .2s}
+
+/* tooltip */
+.tip{position:fixed;z-index:60;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s;
+  background:var(--bg-2);border:1px solid var(--line-2);border-radius:12px;padding:11px 13px;box-shadow:var(--shadow);max-width:260px}
+.tip.on{opacity:1;transform:translateY(0)}
+.tip__name{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:3px}
+.tip__meta{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.tip__bar{height:3px;border-radius:3px;margin-bottom:8px;width:42px}
+
+/* loading / error */
+.overlay{position:fixed;inset:0;z-index:80;display:grid;place-items:center;background:var(--bg-0);transition:opacity .5s}
+.overlay.hide{opacity:0;pointer-events:none}
+.loader{text-align:center}
+.loader__ring{width:46px;height:46px;margin:0 auto 18px;border-radius:50%;border:2px solid var(--line-2);border-top-color:var(--accent);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader__txt{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.1em}
+.errbox{max-width:440px;text-align:center;padding:30px}
+.errbox h3{font-family:var(--serif);font-size:22px;margin:0 0 10px;color:#f2785c}
+.errbox p{color:var(--ink-2);font-size:13.5px;line-height:1.6;margin:0 0 18px}
+.errbox code{font-family:var(--mono);font-size:12px;background:var(--glass-2);padding:2px 7px;border-radius:6px;color:var(--accent)}
+.errbox button{font-family:var(--sans);font-size:13px;padding:10px 20px;border-radius:11px;border:1px solid var(--line-2);
+  background:var(--glass-2);color:var(--ink);cursor:pointer}
+
+/* entrance */
+.reveal{opacity:0;transform:translateY(10px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.d1{animation-delay:.05s}.d2{animation-delay:.13s}.d3{animation-delay:.21s}.d4{animation-delay:.29s}.d5{animation-delay:.37s}
+
+@media (max-width:1080px){
+  .main{grid-template-columns:1fr}
+  .panel{display:none}
+  .hero{padding:16px 22px}
+  .stats{gap:20px}
+}
+@media (max-width:600px){
+  .hdr{flex-wrap:wrap;gap:10px 12px;padding:12px 16px}
+  .brand__sub{display:none}
+  .search{order:3;flex-basis:100%;max-width:none}
+  .hero{flex-direction:column;align-items:flex-start;gap:14px;padding:14px 16px 10px}
+  .hero__h1{font-size:25px}
+  .hero__lead{display:none}
+  .stats{gap:14px 22px}
+  .stat__v{font-size:23px}
+  .legend{max-width:144px;top:12px;left:12px}
+  .legend .lg__name{font-size:11px}
+  .stage__hint{display:none}
+  .timeline{padding:10px 16px 12px}
+}
+@media (prefers-reduced-motion:reduce){.reveal{animation:none;opacity:1;transform:none}.loader__ring{animation:none}}
+</style>
 </head>
 <body>
-    <div class="app">
-        <!-- Header -->
-        <header class="header" role="banner">
-            <div class="header__brand">
-                <span>EAN Network</span>
-            </div>
-            
-            <div class="header__search">
-                <div class="search-container">
-                    <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input 
-                        type="search" 
-                        class="search-input" 
-                        id="searchInput"
-                        placeholder="프로젝트, 용역, 발주처 검색..."
-                        aria-label="네트워크 검색"
-                        autocomplete="off"
-                        spellcheck="false"
-                    >
-                    <kbd class="search-shortcut">⌘K</kbd>
-                </div>
-            </div>
-            
-            <div class="header__actions">
-                <div class="view-mode-selector">
-                    <button class="view-mode-btn active" data-mode="network" id="networkModeBtn" aria-label="네트워크 뷰">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16l-4-4m0 0l4-4m-4 4h16m0 0l-4 4m4-4l-4-4"/>
-                        </svg>
-                        <span class="sr-only">네트워크</span>
-                    </button>
-                    <button class="view-mode-btn" data-mode="sankey" id="sankeyModeBtn" aria-label="생키 다이어그램">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                        <span class="sr-only">생키</span>
-                    </button>
-                </div>
-                <button class="help-toggle" aria-label="도움말" id="helpToggle">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </button>
-                <button class="theme-toggle" aria-label="테마 변경" id="themeToggle">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                </button>
-                <button class="menu-toggle" aria-label="필터 메뉴" id="menuToggle">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
-                    </svg>
-                </button>
-            </div>
-        </header>
-        
-        <!-- Main Content -->
-        <main class="main" role="main">
-            <!-- Graph Viewport -->
-            <div class="graph-viewport">
-                <svg class="graph-canvas" id="graphCanvas" role="img" aria-label="EAN 네트워크 그래프">
-                    <defs>
-                        <!-- Gradients and patterns will be defined here -->
-                    </defs>
-                </svg>
-            </div>
-            
-            <!-- Loading Overlay -->
-            <div class="loading-overlay" id="loadingOverlay" aria-live="polite">
-                <div class="loading-spinner" role="status" aria-label="데이터 로딩 중"></div>
-                <div class="loading-text">
-                    <div class="loading-title">네트워크 구축 중</div>
-                    <div class="loading-subtitle">EAN의 20년 발자취를 연결하고 있습니다</div>
-                </div>
-            </div>
-            
-            <!-- Floating Stats -->
-            <div class="floating-stats" role="complementary" aria-label="네트워크 통계">
-                <div class="stats-title">네트워크 현황</div>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">프로젝트</span>
-                        <span class="stat-value" id="totalProjects">-</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">노드</span>
-                        <span class="stat-value" id="totalServices">-</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">연결</span>
-                        <span class="stat-value" id="totalConnections">-</span>
-                    </div>
-                    <div class="stat-item" id="selectedInfo" style="display: none;">
-                        <span class="stat-label">선택됨</span>
-                        <span class="stat-value" id="selectedCount">0</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Controls Panel -->
-            <aside class="controls-panel" id="controlsPanel" data-state="expanded" role="complementary" aria-label="필터 및 설정">
-                <button class="controls-toggle" id="controlsToggle" aria-label="필터 패널 열기">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </button>
-                
-                <div class="controls-content">
-                    <section class="control-section">
-                        <h3 class="control-title">기간 설정</h3>
-                        <div class="filter-group">
-                            <div class="year-range">
-                                <div class="input-group">
-                                    <label class="input-label" for="startYear">시작 연도</label>
-                                    <select class="form-select" id="startYear">
-                                        <option value="2003">2003</option>
-                                        <option value="2020" selected>2020</option>
-                                    </select>
-                                </div>
-                                <div class="input-group">
-                                    <label class="input-label" for="endYear">종료 연도</label>
-                                    <select class="form-select" id="endYear">
-                                        <option value="2024" selected>2024</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                    
-                    <section class="control-section">
-                        <h3 class="control-title">분야 및 용역</h3>
-                        <div class="filter-group">
-                            <div class="input-group">
-                                <label class="input-label" for="fieldFilter">분야 선택</label>
-                                <select class="form-select" id="fieldFilter">
-                                    <option value="">전체 분야</option>
-                                </select>
-                            </div>
-                            <div class="input-group">
-                                <label class="input-label" for="serviceFilter">용역 선택</label>
-                                <select class="form-select" id="serviceFilter">
-                                    <option value="">전체 용역</option>
-                                </select>
-                            </div>
-                        </div>
-                    </section>
-                    
-                    
-                    <section class="control-section">
-                        <h3 class="control-title">표시 설정</h3>
-                        <div class="filter-group">
-                            <div class="input-group">
-                                <label class="input-label" for="nodeSize">노드 크기</label>
-                                <select class="form-select" id="nodeSize">
-                                    <option value="small">작음</option>
-                                    <option value="medium" selected>보통</option>
-                                    <option value="large">큼</option>
-                                </select>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-            </aside>
-            
-            <!-- Tooltip -->
-            <div class="tooltip" id="tooltip" role="tooltip"></div>
-        </main>
+<div class="bg"><div class="bg__grid"></div><div class="bg__grain"></div></div>
+
+<div class="app">
+  <header class="hdr">
+    <div class="brand reveal d1">
+      <div class="brand__mark"></div>
+      <div class="brand__txt">
+        <div class="brand__name">EAN&nbsp;OBSERVATORY</div>
+        <div class="brand__sub">Contract Constellation</div>
+      </div>
     </div>
-
-    <!-- Help Modal -->
-    <div class="help-modal" id="helpModal" role="dialog" aria-labelledby="helpModalTitle" aria-hidden="true">
-        <div class="help-modal-backdrop" id="helpModalBackdrop"></div>
-        <div class="help-modal-content" role="document">
-            <div class="help-modal-header">
-                <h2 id="helpModalTitle" class="help-modal-title">화면 컨트롤 가이드</h2>
-                <button class="help-modal-close" id="helpModalClose" aria-label="도움말 닫기">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="help-modal-body">
-                <div class="help-section">
-                    <div class="help-section-icon">🖱️</div>
-                    <div class="help-section-content">
-                        <h3 class="help-section-title">마우스 컨트롤</h3>
-                        <ul class="help-list">
-                            <li><kbd>Ctrl</kbd> + <strong>휠</strong>: 줌 인/아웃</li>
-                            <li><kbd>Shift</kbd> + <strong>휠</strong>: 좌우 이동</li>
-                            <li><strong>휠 스크롤</strong>: 상하 이동 (생키 모드)</li>
-                            <li><strong>드래그</strong>: 자유 화면 이동</li>
-                            <li><strong>노드 클릭</strong>: 선택/하이라이트</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="help-section">
-                    <div class="help-section-icon">⌨️</div>
-                    <div class="help-section-content">
-                        <h3 class="help-section-title">키보드 단축키</h3>
-                        <ul class="help-list">
-                            <li><kbd>Ctrl</kbd> + <kbd>K</kbd> (Mac: <kbd>⌘</kbd> + <kbd>K</kbd>): 검색 포커스</li>
-                            <li><kbd>ESC</kbd>: 검색 취소 / 모달 닫기</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="help-section">
-                    <div class="help-section-icon">🎛️</div>
-                    <div class="help-section-content">
-                        <h3 class="help-section-title">패널 및 네비게이션</h3>
-                        <ul class="help-list">
-                            <li><strong>우측 패널</strong>: 기간, 분야, 용역 필터 및 표시 설정</li>
-                            <li><strong>좌측 하단</strong>: 네트워크 현황 통계</li>
-                            <li><strong>상단 버튼</strong>: 네트워크/생키 다이어그램 전환</li>
-                            <li><strong>좌측 레이어 네비</strong>: 층별 빠른 이동 (생키 모드)</li>
-                            <li><strong>우하단 미니맵</strong>: 전체 뷰 확인 및 빠른 이동</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="help-section">
-                    <div class="help-section-icon">🔍</div>
-                    <div class="help-section-content">
-                        <h3 class="help-section-title">검색 및 필터</h3>
-                        <ul class="help-list">
-                            <li>검색창에서 프로젝트명, 발주처, 분야, 용역 검색 가능</li>
-                            <li>우측 패널에서 연도별, 분야별, 용역별 필터링</li>
-                            <li>노드 크기 조절로 가독성 향상</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="help-section">
-                    <div class="help-section-icon">📊</div>
-                    <div class="help-section-content">
-                        <h3 class="help-section-title">생키 다이어그램 (새기능)</h3>
-                        <ul class="help-list">
-                            <li><strong>자연스러운 스크롤</strong>: 휠로 상하 이동, Shift+휠로 좌우 이동</li>
-                            <li><strong>레이어 네비게이션</strong>: 좌측 버튼으로 각 층으로 빠른 이동</li>
-                            <li><strong>미니맵</strong>: 우하단에서 전체 뷰 확인 및 클릭 이동</li>
-                            <li><strong>무한 캔버스</strong>: 데이터가 많아도 모든 노드 탐색 가능</li>
-                            <li><strong>검색 기능</strong>: 텍스트 검색으로 즉시 필터링</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="search reveal d2">
+      <svg class="search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5" stroke-linecap="round"/></svg>
+      <input id="search" type="search" placeholder="프로젝트·발주처 검색 (예: 판교, LEED, 한국토지주택공사)" autocomplete="off" />
+      <span class="search__count" id="searchCount"></span>
     </div>
+    <div class="hdr__actions reveal d3">
+      <button class="iconbtn" id="resetBtn" title="전체 보기로 초기화" aria-label="초기화">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 4v4h4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="iconbtn" id="themeBtn" title="라이트/다크 전환" aria-label="테마">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </header>
 
-    <!-- External libraries -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+  <section class="hero">
+    <div class="hero__title reveal d2">
+      <p class="hero__eyebrow">2003 — 2025 · 23 YEARS</p>
+      <h1 class="hero__h1">환경건축 실적의 <em>별자리</em></h1>
+      <p class="hero__lead">EAN이 20여 년간 수행한 모든 프로젝트를 분야와 용역으로 엮어 하나의 지형으로 펼칩니다. 노드를 누르면 그 영역의 실적이 열립니다.</p>
+    </div>
+    <div class="stats reveal d4" id="stats"></div>
+  </section>
 
-    <script>
-        // ==========================================
-        // GLOBAL VARIABLES & CONFIGURATION
-        // ==========================================
-        let allData = [];
-        let filteredData = [];
-        let nodes = [];
-        let links = [];
-        let simulation = null;
-        let svg, g, nodeGroup, linkGroup;
-        let width, height;
-        let currentTransform = d3.zoomIdentity;
-        let selectedNodes = new Set();
-        let hoveredNode = null;
-        let fuse = null;
-        let currentViewMode = 'network'; // 'network' or 'sankey'
-        
-        // Dependent dropdown relationship maps
-        let fieldServiceMap = new Map(); // 분야 → 용역들
-        let serviceFieldMap = new Map(); // 용역 → 분야들
-        
-        // Theme management
-        let currentTheme = localStorage.getItem('ean-theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', currentTheme);
-        
-        // Configuration
-        const CONFIG = {
-            colors: {
-                project: '#10b981',     // 프로젝트 (초록)
-                contractor: '#2563eb',  // 발주처 (파랑)
-                field: '#f59e0b',       // 분야 (주황)
-                service: '#8b5cf6',     // 용역 (보라)
-                highlight: '#ef4444',   // 하이라이트 (빨강)
-                connection: '#94a3b8'   // 연결선 (회색)
-            },
-            node: {
-                radius: {
-                    small: { min: 3, max: 8 },
-                    medium: { min: 4, max: 12 },
-                    large: { min: 6, max: 16 }
-                }
-            },
-            simulation: {
-                strength: -300,
-                distance: 80,
-                iterations: 300
-            },
-            search: {
-                threshold: 0.3,
-                keys: ['프로젝트명', '발주처', '분야', '용역', 'year']
-            }
-        };
-        
-        // ==========================================
-        // THEME & UI MANAGEMENT
-        // ==========================================
-        function initializeTheme() {
-            const themeToggle = document.getElementById('themeToggle');
-            const icon = themeToggle.querySelector('svg path');
-            
-            function updateThemeIcon() {
-                if (currentTheme === 'dark') {
-                    icon.setAttribute('d', 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z');
-                } else {
-                    icon.setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
-                }
-            }
-            
-            updateThemeIcon();
-            
-            themeToggle.addEventListener('click', () => {
-                currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-                document.documentElement.setAttribute('data-theme', currentTheme);
-                localStorage.setItem('ean-theme', currentTheme);
-                updateThemeIcon();
-            });
-        }
-        
-        // ==========================================
-        // VIEW MODE MANAGEMENT
-        // ==========================================
-        function initializeViewModes() {
-            const networkBtn = document.getElementById('networkModeBtn');
-            const sankeyBtn = document.getElementById('sankeyModeBtn');
-            
-            networkBtn.addEventListener('click', () => switchViewMode('network'));
-            sankeyBtn.addEventListener('click', () => switchViewMode('sankey'));
-        }
-        
-        function switchViewMode(mode) {
-            if (currentViewMode === mode) return;
-            
-            currentViewMode = mode;
-            
-            // Update button states
-            document.querySelectorAll('.view-mode-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById(mode === 'network' ? 'networkModeBtn' : 'sankeyModeBtn')
-                .classList.add('active');
-            
-            // Clear current visualization
-            clearVisualization();
-            
-            // Render appropriate visualization
-            if (mode === 'network') {
-                initializeVisualization();
-                // Recreate simulation for network mode
-                simulation = d3.forceSimulation()
-                    .force('link', d3.forceLink().id(d => d.id).distance(150))
-                    .force('charge', d3.forceManyBody().strength(-800))
-                    .force('center', d3.forceCenter(width / 2, height / 2))
-                    .force('collision', d3.forceCollide().radius(35));
-                
-                initializeSimulation();
-                updateVisualization();
-            } else if (mode === 'sankey') {
-                renderSankeyDiagram();
-            }
-        }
-        
-        function clearVisualization() {
-            const svg = d3.select('#graphCanvas');
-            svg.selectAll('*').remove();
-            
-            // Reset any zoom transformations
-            svg.call(d3.zoom().transform, d3.zoomIdentity);
-            
-            // Stop simulation if it exists (regardless of current mode)
-            if (simulation) {
-                simulation.stop();
-                simulation = null;
-            }
-        }
-        
-        function initializeControls() {
-            const menuToggle = document.getElementById('menuToggle');
-            const controlsPanel = document.getElementById('controlsPanel');
-            const controlsToggle = document.getElementById('controlsToggle');
-            
-            // Set initial state - panel is expanded by default
-            const icon = controlsToggle.querySelector('svg path');
-            icon.setAttribute('d', 'm15 19-7-7 7-7');
-            controlsToggle.setAttribute('aria-label', '필터 패널 닫기');
-            
-            function togglePanel() {
-                const isExpanded = controlsPanel.dataset.state === 'expanded';
-                controlsPanel.dataset.state = isExpanded ? 'collapsed' : 'expanded';
-                
-                const icon = controlsToggle.querySelector('svg path');
-                if (isExpanded) {
-                    icon.setAttribute('d', 'M9 5l7 7-7 7');
-                    controlsToggle.setAttribute('aria-label', '필터 패널 열기');
-                } else {
-                    icon.setAttribute('d', 'm15 19-7-7 7-7');
-                    controlsToggle.setAttribute('aria-label', '필터 패널 닫기');
-                }
-            }
-            
-            menuToggle.addEventListener('click', togglePanel);
-            controlsToggle.addEventListener('click', togglePanel);
-        }
-        
-        // ==========================================
-        // HELP MODAL MANAGEMENT
-        // ==========================================
-        function initializeHelpModal() {
-            const helpToggle = document.getElementById('helpToggle');
-            const helpModal = document.getElementById('helpModal');
-            const helpModalClose = document.getElementById('helpModalClose');
-            const helpModalBackdrop = document.getElementById('helpModalBackdrop');
-            
-            function openHelpModal() {
-                helpModal.setAttribute('data-state', 'open');
-                helpModal.setAttribute('aria-hidden', 'false');
-                document.body.style.overflow = 'hidden';
-                
-                // Focus management
-                const focusableElements = helpModal.querySelectorAll(
-                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                );
-                const firstElement = focusableElements[0];
-                const lastElement = focusableElements[focusableElements.length - 1];
-                
-                if (firstElement) {
-                    firstElement.focus();
-                }
-                
-                // Trap focus within modal
-                function trapFocus(e) {
-                    if (e.key === 'Tab') {
-                        if (e.shiftKey && document.activeElement === firstElement) {
-                            e.preventDefault();
-                            lastElement.focus();
-                        } else if (!e.shiftKey && document.activeElement === lastElement) {
-                            e.preventDefault();
-                            firstElement.focus();
-                        }
-                    }
-                }
-                
-                helpModal.addEventListener('keydown', trapFocus);
-                helpModal._trapFocus = trapFocus; // Store for cleanup
-            }
-            
-            function closeHelpModal() {
-                helpModal.setAttribute('data-state', 'closed');
-                helpModal.setAttribute('aria-hidden', 'true');
-                document.body.style.overflow = '';
-                
-                // Remove focus trap
-                if (helpModal._trapFocus) {
-                    helpModal.removeEventListener('keydown', helpModal._trapFocus);
-                    delete helpModal._trapFocus;
-                }
-                
-                // Return focus to help button
-                helpToggle.focus();
-            }
-            
-            // Event listeners
-            helpToggle.addEventListener('click', openHelpModal);
-            helpModalClose.addEventListener('click', closeHelpModal);
-            helpModalBackdrop.addEventListener('click', closeHelpModal);
-            
-            // Keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && helpModal.getAttribute('data-state') === 'open') {
-                    closeHelpModal();
-                }
-            });
-        }
-        
-        // ==========================================
-        // DATA LOADING & PROCESSING
-        // ==========================================
-        async function loadData() {
-            let jsonData = null;
-            let data = [];
-            
-            try {
-                // Try loading JSON first
-                try {
-                    console.log('Loading data.json...');
-                    const response = await fetch('data.json');
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    jsonData = await response.json();
-                    
-                    console.log('✅ JSON data loaded:', {
-                        total: jsonData.metadata?.total_records || 'unknown',
-                        dateRange: jsonData.metadata?.date_range || 'unknown',
-                        fieldsCount: jsonData.metadata?.fields_count || 'unknown'
-                    });
-                    
-                    // Use the converted records directly
-                    data = jsonData.records || [];
-                    
-                    if (data.length === 0) {
-                        throw new Error('No records found in JSON data');
-                    }
-                    
-                } catch (jsonError) {
-                    console.warn('JSON loading failed, trying CSV fallback:', jsonError.message);
-                    
-                    // Fallback to CSV
-                    try {
-                        const response = await fetch('202508_EAN계약현황_완전본.csv');
-                        if (!response.ok) {
-                            throw new Error(`CSV HTTP ${response.status}: ${response.statusText}`);
-                        }
-                        const text = await response.text();
-                        data = d3.csvParse(text);
-                        console.log('✅ CSV fallback data loaded:', data.length, 'records');
-                    } catch (csvError) {
-                        throw new Error(`Both JSON and CSV loading failed. JSON: ${jsonError.message}, CSV: ${csvError.message}`);
-                    }
-                }
-                
-                // Filter valid data - updated for new column structure
-                const validData = data.filter(d => {
-                    const hasYear = d.year;
-                    const hasProject = d.프로젝트명;
-                    const hasContractor = d.발주처;
-                    const hasField = d.분야;
-                    const hasService = d.용역;
-                    return hasYear && hasProject && hasContractor && hasField && hasService;
-                });
-                
-                console.log(`📊 Data validation: ${data.length} total → ${validData.length} valid records`);
-                
-                if (validData.length === 0) {
-                    throw new Error('No valid records found after filtering');
-                }
-                
-                allData = validData;
-                
-                // Show data information if available
-                if (jsonData && jsonData.metadata) {
-                    displayDataInfo(jsonData.metadata);
-                }
-                
-                initializeFilters();
-                initializeSearch();
-                updateVisualization();
-                hideLoading();
-                
-                console.log('🎉 Data loading completed successfully');
-                
-            } catch (error) {
-                console.error('💥 Data loading failed:', error);
-                showError(`데이터를 불러올 수 없습니다: ${error.message}`);
-            }
-        }
-        
-        // ==========================================
-        // DEPENDENT DROPDOWN FUNCTIONS
-        // ==========================================
-        function buildRelationshipMaps() {
-            console.log('🔗 Building field-service relationship maps...');
-            
-            // Clear existing maps
-            fieldServiceMap.clear();
-            serviceFieldMap.clear();
-            
-            // Build relationship mappings from data
-            allData.forEach(record => {
-                const field = record.분야;
-                const service = record.용역;
-                
-                if (field && service) {
-                    // Field → Services mapping
-                    if (!fieldServiceMap.has(field)) {
-                        fieldServiceMap.set(field, new Set());
-                    }
-                    fieldServiceMap.get(field).add(service);
-                    
-                    // Service → Fields mapping
-                    if (!serviceFieldMap.has(service)) {
-                        serviceFieldMap.set(service, new Set());
-                    }
-                    serviceFieldMap.get(service).add(field);
-                }
-            });
-            
-            console.log(`📊 Built relationships: ${fieldServiceMap.size} fields, ${serviceFieldMap.size} services`);
-        }
-        
-        function updateDependentDropdowns(changedDropdown, selectedValue) {
-            const fieldFilter = document.getElementById('fieldFilter');
-            const serviceFilter = document.getElementById('serviceFilter');
-            const fieldLabel = document.querySelector('label[for="fieldFilter"]');
-            const serviceLabel = document.querySelector('label[for="serviceFilter"]');
-            
-            // Add loading animation to the dependent dropdown
-            if (changedDropdown === 'field') {
-                serviceFilter.parentElement.classList.add('dropdown-loading');
-                serviceFilter.disabled = true;
-                
-                // Use setTimeout to show loading animation briefly
-                setTimeout(() => {
-                    // Field changed - update service dropdown
-                    if (selectedValue === '') {
-                        // Reset to all services
-                        const allServices = getAllServices();
-                        populateServiceDropdown(allServices);
-                        updateDropdownLabel(serviceLabel, '용역', allServices.length);
-                    } else {
-                        // Show only services related to selected field
-                        const relatedServices = fieldServiceMap.get(selectedValue) || new Set();
-                        const serviceArray = Array.from(relatedServices).sort();
-                        populateServiceDropdown(serviceArray);
-                        updateDropdownLabel(serviceLabel, '용역', serviceArray.length);
-                    }
-                    
-                    // Remove loading animation
-                    serviceFilter.parentElement.classList.remove('dropdown-loading');
-                    serviceFilter.disabled = false;
-                }, 150);
-                
-            } else if (changedDropdown === 'service') {
-                fieldFilter.parentElement.classList.add('dropdown-loading');
-                fieldFilter.disabled = true;
-                
-                setTimeout(() => {
-                    // Service changed - update field dropdown
-                    if (selectedValue === '') {
-                        // Reset to all fields
-                        const allFields = getAllFields();
-                        populateFieldDropdown(allFields);
-                        updateDropdownLabel(fieldLabel, '분야', allFields.length);
-                    } else {
-                        // Show only fields related to selected service
-                        const relatedFields = serviceFieldMap.get(selectedValue) || new Set();
-                        const fieldArray = Array.from(relatedFields).sort();
-                        populateFieldDropdown(fieldArray);
-                        updateDropdownLabel(fieldLabel, '분야', fieldArray.length);
-                    }
-                    
-                    // Remove loading animation
-                    fieldFilter.parentElement.classList.remove('dropdown-loading');
-                    fieldFilter.disabled = false;
-                }, 150);
-            }
-        }
-        
-        function updateDropdownLabel(labelElement, baseName, count) {
-            const totalCount = baseName === '분야' ? getAllFields().length : getAllServices().length;
-            if (count === totalCount) {
-                labelElement.innerHTML = `${baseName}:`;
-            } else {
-                labelElement.innerHTML = `${baseName}: <span class="option-count">(${count}개 옵션)</span>`;
-            }
-        }
-        
-        function getAllFields() {
-            return [...new Set(allData.map(d => d.분야))].filter(f => f).sort();
-        }
-        
-        function getAllServices() {
-            return [...new Set(allData.map(d => d.용역))].filter(s => s).sort();
-        }
-        
-        function populateFieldDropdown(fields) {
-            const fieldSelect = document.getElementById('fieldFilter');
-            const currentValue = fieldSelect.value;
-            
-            // Clear existing options except "전체 분야"
-            fieldSelect.innerHTML = '<option value="">전체 분야</option>';
-            
-            // Add new options
-            fields.forEach(field => {
-                const option = new Option(field, field);
-                if (field === currentValue) {
-                    option.selected = true;
-                }
-                fieldSelect.add(option);
-            });
-            
-            // Update label to show count
-            const label = fieldSelect.parentElement.querySelector('.input-label');
-            label.textContent = `분야 선택 (${fields.length}개)`;
-        }
-        
-        function populateServiceDropdown(services) {
-            const serviceSelect = document.getElementById('serviceFilter');
-            const currentValue = serviceSelect.value;
-            
-            // Clear existing options except "전체 용역"
-            serviceSelect.innerHTML = '<option value="">전체 용역</option>';
-            
-            // Add new options
-            services.forEach(service => {
-                const option = new Option(service, service);
-                if (service === currentValue) {
-                    option.selected = true;
-                }
-                serviceSelect.add(option);
-            });
-            
-            // Update label to show count
-            const label = serviceSelect.parentElement.querySelector('.input-label');
-            label.textContent = `용역 선택 (${services.length}개)`;
-        }
-        
-        function initializeFilters() {
-            // Year range setup
-            const years = [...new Set(allData.map(d => parseInt(d.year)))].filter(y => !isNaN(y)).sort();
-            const startYearSelect = document.getElementById('startYear');
-            const endYearSelect = document.getElementById('endYear');
-            
-            // Clear existing options
-            startYearSelect.innerHTML = '';
-            endYearSelect.innerHTML = '';
-            
-            years.forEach(year => {
-                const startOption = new Option(year, year);
-                const endOption = new Option(year, year);
-                
-                if (year === Math.min(...years)) startOption.selected = true;
-                if (year === Math.max(...years)) endOption.selected = true;
-                
-                startYearSelect.add(startOption);
-                endYearSelect.add(endOption);
-            });
-            
-            // Build relationship maps for dependent dropdowns
-            buildRelationshipMaps();
-            
-            // Initialize field and service dropdowns with full lists
-            const allFields = getAllFields();
-            const allServices = getAllServices();
-            populateFieldDropdown(allFields);
-            populateServiceDropdown(allServices);
-            
-            // Initialize labels with counts
-            const fieldLabel = document.querySelector('label[for="fieldFilter"]');
-            const serviceLabel = document.querySelector('label[for="serviceFilter"]');
-            updateDropdownLabel(fieldLabel, '분야', allFields.length);
-            updateDropdownLabel(serviceLabel, '용역', allServices.length);
-            
-            // Event listeners with dependent dropdown support
-            [startYearSelect, endYearSelect].forEach(select => {
-                select.addEventListener('change', updateVisualization);
-            });
-            
-            // Special event listeners for dependent dropdowns
-            const fieldSelect = document.getElementById('fieldFilter');
-            const serviceSelect = document.getElementById('serviceFilter');
-            
-            fieldSelect.addEventListener('change', (e) => {
-                updateDependentDropdowns('field', e.target.value);
-                updateVisualization();
-            });
-            
-            serviceSelect.addEventListener('change', (e) => {
-                updateDependentDropdowns('service', e.target.value);
-                updateVisualization();
-            });
-            
-            document.getElementById('nodeSize').addEventListener('change', updateVisualization);
-        }
-        
-        function initializeSearch() {
-            const searchInput = document.getElementById('searchInput');
-            
-            // Initialize Fuse.js for fuzzy search
-            fuse = new Fuse(allData, {
-                ...CONFIG.search,
-                includeScore: true
-            });
-            
-            let searchTimeout;
-            searchInput.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    handleSearch(e.target.value);
-                }, 150);
-            });
-            
-            // Keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                    e.preventDefault();
-                    searchInput.focus();
-                }
-                
-                if (e.key === 'Escape') {
-                    searchInput.blur();
-                    clearSearch();
-                }
-            });
-        }
-        
-        function handleSearch(query) {
-            if (!query.trim()) {
-                clearSearch();
-                return;
-            }
-            
-            const results = fuse.search(query);
-            const matchedData = results.map(result => result.item);
-            
-            // Update visualization with search results
-            filteredData = matchedData;
-            if (currentViewMode === 'network') {
-                updateGraph();
-                highlightSearchResults(matchedData);
-            } else {
-                updateVisualization();
-            }
-        }
-        
-        function clearSearch() {
-            filteredData = getFilteredData();
-            if (currentViewMode === 'network') {
-                updateGraph();
-                clearHighlights();
-            } else {
-                updateVisualization();
-            }
-        }
-        
-        // ==========================================
-        // VISUALIZATION SETUP & UPDATE
-        // ==========================================
-        function initializeVisualization() {
-            const container = document.getElementById('graphCanvas');
-            const rect = container.getBoundingClientRect();
-            width = rect.width;
-            height = rect.height;
-            
-            svg = d3.select(container);
-            
-            // Add zoom behavior - only with Ctrl key
-            const zoom = d3.zoom()
-                .scaleExtent([0.1, 4])
-                .filter(event => {
-                    // Only allow zoom when Ctrl key is pressed
-                    if (event.type === 'wheel') {
-                        if (event.ctrlKey || event.metaKey) {
-                            event.preventDefault(); // Prevent page scroll
-                            return true;
-                        }
-                        return false; // Allow normal scroll without zoom
-                    }
-                    return true; // Allow other zoom interactions (drag, touch)
-                })
-                .on('zoom', handleZoom);
-            
-            svg.call(zoom);
-            
-            // Main group for all elements
-            g = svg.append('g');
-            
-            // Groups for links and nodes (order matters for layering)
-            linkGroup = g.append('g').attr('class', 'links');
-            nodeGroup = g.append('g').attr('class', 'nodes');
-            
-            // Setup simulation
-            simulation = d3.forceSimulation()
-                .force('link', d3.forceLink().id(d => d.id).distance(CONFIG.simulation.distance))
-                .force('charge', d3.forceManyBody().strength(CONFIG.simulation.strength))
-                .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(d => getNodeRadius(d) + 2));
-        }
-        
-        function getFilteredData() {
-            const startYear = parseInt(document.getElementById('startYear')?.value || '2003');
-            const endYear = parseInt(document.getElementById('endYear')?.value || '2025');
-            const selectedField = document.getElementById('fieldFilter')?.value || '';
-            const selectedService = document.getElementById('serviceFilter')?.value || '';
-            
-            return allData.filter(d => {
-                // Year filtering
-                const year = parseInt(d.year);
-                const yearMatch = !isNaN(year) && year >= startYear && year <= endYear;
-                
-                // Field filtering
-                const fieldMatch = !selectedField || d.분야 === selectedField;
-                
-                // Service filtering
-                const serviceMatch = !selectedService || d.용역 === selectedService;
-                
-                return yearMatch && fieldMatch && serviceMatch;
-            });
-        }
-        
-        function processData(data) {
-            const nodeMap = new Map();
-            const linkMap = new Map();
-            
-            data.forEach(d => {
-                const projectId = `project_${d.프로젝트명}`;
-                const contractorId = `contractor_${d.발주처}`;
-                const fieldId = `field_${d.분야}`;
-                const serviceId = `service_${d.용역}`;
-                
-                // Add project node
-                if (!nodeMap.has(projectId)) {
-                    nodeMap.set(projectId, {
-                        id: projectId,
-                        name: d.프로젝트명,
-                        type: 'project',
-                        connections: 0,
-                        year: d.year,
-                        field: d.분야,
-                        service: d.용역
-                    });
-                }
-                
-                // Add contractor node
-                if (!nodeMap.has(contractorId)) {
-                    nodeMap.set(contractorId, {
-                        id: contractorId,
-                        name: d.발주처,
-                        type: 'contractor',
-                        connections: 0
-                    });
-                }
-                
-                // Add field node
-                if (!nodeMap.has(fieldId)) {
-                    nodeMap.set(fieldId, {
-                        id: fieldId,
-                        name: d.분야,
-                        type: 'field',
-                        connections: 0
-                    });
-                }
-                
-                // Add service node
-                if (!nodeMap.has(serviceId)) {
-                    nodeMap.set(serviceId, {
-                        id: serviceId,
-                        name: d.용역,
-                        type: 'service',
-                        connections: 0
-                    });
-                }
-                
-                // Add links - 분야 → 용역 → 프로젝트 → 발주처 순서
-                const links = [
-                    { source: fieldId, target: serviceId },
-                    { source: serviceId, target: projectId },
-                    { source: projectId, target: contractorId }
-                ];
-                
-                links.forEach(link => {
-                    const linkId = `${link.source}_${link.target}`;
-                    if (linkMap.has(linkId)) {
-                        linkMap.get(linkId).weight++;
-                    } else {
-                        linkMap.set(linkId, {
-                            source: link.source,
-                            target: link.target,
-                            weight: 1
-                        });
-                    }
-                });
-                
-                // Update connection counts
-                nodeMap.get(projectId).connections += 3;
-                nodeMap.get(contractorId).connections++;
-                nodeMap.get(fieldId).connections++;
-                nodeMap.get(serviceId).connections++;
-            });
-            
-            return {
-                nodes: Array.from(nodeMap.values()),
-                links: Array.from(linkMap.values())
-            };
-        }
-        
-        function getNodeRadius(d) {
-            const sizeMode = document.getElementById('nodeSize')?.value || 'medium';
-            const { min, max } = CONFIG.node.radius[sizeMode];
-            const scale = Math.sqrt(d.connections || 1);
-            return Math.max(min, Math.min(max, min + scale * 2));
-        }
-        
-        function updateGraph() {
-            const { nodes: newNodes, links: newLinks } = processData(filteredData);
-            
-            nodes = newNodes;
-            links = newLinks;
-            
-            // Update simulation
-            simulation.nodes(nodes);
-            simulation.force('link').links(links);
-            
-            // Update visual elements
-            updateLinks();
-            updateNodes();
-            
-            // Restart simulation
-            simulation.alpha(0.3).restart();
-            
-            // Update stats
-            updateStats();
-        }
-        
-        function updateLinks() {
-            const link = linkGroup.selectAll('line')
-                .data(links, d => `${d.source.id || d.source}_${d.target.id || d.target}`);
-            
-            link.exit().remove();
-            
-            const linkEnter = link.enter().append('line')
-                .attr('stroke', CONFIG.colors.connection)
-                .attr('stroke-opacity', 0.6)
-                .attr('stroke-width', d => Math.sqrt(d.weight));
-            
-            link.merge(linkEnter)
-                .attr('stroke-width', d => Math.sqrt(d.weight));
-        }
-        
-        function updateNodes() {
-            const node = nodeGroup.selectAll('circle')
-                .data(nodes, d => d.id);
-            
-            node.exit().remove();
-            
-            const nodeEnter = node.enter().append('circle')
-                .attr('r', getNodeRadius)
-                .attr('fill', d => {
-                    switch(d.type) {
-                        case 'project': return CONFIG.colors.project;
-                        case 'contractor': return CONFIG.colors.contractor;
-                        case 'field': return CONFIG.colors.field;
-                        case 'service': return CONFIG.colors.service;
-                        default: return CONFIG.colors.connection;
-                    }
-                })
-                .attr('stroke', '#fff')
-                .attr('stroke-width', 2)
-                .style('cursor', 'pointer')
-                .on('mouseover', handleNodeHover)
-                .on('mouseout', handleNodeOut)
-                .on('click', handleNodeClick)
-                .call(d3.drag()
-                    .on('start', dragStarted)
-                    .on('drag', dragged)
-                    .on('end', dragEnded));
-            
-            node.merge(nodeEnter)
-                .attr('r', getNodeRadius)
-                .attr('fill', d => {
-                    switch(d.type) {
-                        case 'project': return CONFIG.colors.project;
-                        case 'contractor': return CONFIG.colors.contractor;
-                        case 'field': return CONFIG.colors.field;
-                        case 'service': return CONFIG.colors.service;
-                        default: return CONFIG.colors.connection;
-                    }
-                });
-        }
-        
-        function updateVisualization() {
-            filteredData = getFilteredData();
-            if (currentViewMode === 'network') {
-                updateGraph();
-            } else if (currentViewMode === 'sankey') {
-                renderSankeyDiagram();
-            }
-        }
-        
-        // ==========================================
-        // SANKEY DIAGRAM FUNCTIONS
-        // ==========================================
-        
-        function renderSankeyDiagram() {
-            console.log('🎨 Creating New Clean Sankey Diagram...');
-            
-            const container = document.getElementById('graphCanvas');
-            const rect = container.getBoundingClientRect();
-            const width = rect.width;
-            const height = rect.height;
-            
-            const svg = d3.select(container)
-                .attr('width', width)
-                .attr('height', height);
-            
-            // Clear everything
-            svg.selectAll('*').remove();
-            
-            // Get data
-            const rawData = getFilteredData();
-            if (!rawData || rawData.length === 0) {
-                renderEmptyState(svg, width, height);
-                return;
-            }
-            
-            // Create world-class premium Sankey diagram
-            createPremiumSankey(svg, rawData, width, height);
-        }
-        
-        function processDataForCustomSankey(data) {
-            console.log('🔄 Processing data for custom Sankey visualization...');
-            
-            // Create 4 layers: 분야 → 용역 → 프로젝트 → 발주처
-            const layers = {
-                fields: new Map(),      // Layer 0: 분야
-                services: new Map(),    // Layer 1: 용역
-                projects: new Map(),    // Layer 2: 프로젝트
-                contractors: new Map()  // Layer 3: 발주처
-            };
-            
-            const connections = [];
-            
-            // Process each data record
-            data.forEach((d, index) => {
-                // Add nodes to layers
-                if (!layers.fields.has(d.분야)) {
-                    layers.fields.set(d.분야, { 
-                        id: `field_${layers.fields.size}`, 
-                        name: d.분야, 
-                        value: 0, 
-                        layer: 0,
-                        color: CONFIG.colors.field 
-                    });
-                }
-                
-                if (!layers.services.has(d.용역)) {
-                    layers.services.set(d.용역, { 
-                        id: `service_${layers.services.size}`, 
-                        name: d.용역, 
-                        value: 0, 
-                        layer: 1,
-                        color: CONFIG.colors.service 
-                    });
-                }
-                
-                if (!layers.projects.has(d.프로젝트명)) {
-                    layers.projects.set(d.프로젝트명, { 
-                        id: `project_${layers.projects.size}`, 
-                        name: d.프로젝트명, 
-                        value: 0, 
-                        layer: 2,
-                        color: CONFIG.colors.project 
-                    });
-                }
-                
-                if (!layers.contractors.has(d.발주처)) {
-                    layers.contractors.set(d.발주처, { 
-                        id: `contractor_${layers.contractors.size}`, 
-                        name: d.발주처, 
-                        value: 0, 
-                        layer: 3,
-                        color: CONFIG.colors.contractor 
-                    });
-                }
-                
-                // Increment values
-                layers.fields.get(d.분야).value++;
-                layers.services.get(d.용역).value++;
-                layers.projects.get(d.프로젝트명).value++;
-                layers.contractors.get(d.발주처).value++;
-                
-                // Create connections
-                const fieldNode = layers.fields.get(d.분야);
-                const serviceNode = layers.services.get(d.용역);
-                const projectNode = layers.projects.get(d.프로젝트명);
-                const contractorNode = layers.contractors.get(d.발주처);
-                
-                // Add connections with unique keys to avoid duplicates
-                const conn1Key = `${fieldNode.id}->${serviceNode.id}`;
-                const conn2Key = `${serviceNode.id}->${projectNode.id}`;
-                const conn3Key = `${projectNode.id}->${contractorNode.id}`;
-                
-                const existing1 = connections.find(c => c.key === conn1Key);
-                const existing2 = connections.find(c => c.key === conn2Key);
-                const existing3 = connections.find(c => c.key === conn3Key);
-                
-                if (existing1) {
-                    existing1.value++;
-                } else {
-                    connections.push({
-                        key: conn1Key,
-                        source: fieldNode,
-                        target: serviceNode,
-                        value: 1,
-                        color: fieldNode.color
-                    });
-                }
-                
-                if (existing2) {
-                    existing2.value++;
-                } else {
-                    connections.push({
-                        key: conn2Key,
-                        source: serviceNode,
-                        target: projectNode,
-                        value: 1,
-                        color: serviceNode.color
-                    });
-                }
-                
-                if (existing3) {
-                    existing3.value++;
-                } else {
-                    connections.push({
-                        key: conn3Key,
-                        source: projectNode,
-                        target: contractorNode,
-                        value: 1,
-                        color: projectNode.color
-                    });
-                }
-            });
-            
-            const result = {
-                layers: [
-                    Array.from(layers.fields.values()),
-                    Array.from(layers.services.values()),
-                    Array.from(layers.projects.values()),
-                    Array.from(layers.contractors.values())
-                ],
-                connections: connections,
-                stats: {
-                    fields: layers.fields.size,
-                    services: layers.services.size,
-                    projects: layers.projects.size,
-                    contractors: layers.contractors.size,
-                    connections: connections.length
-                }
-            };
-            
-            console.log('📈 Sankey processing stats:', result.stats);
-            return result;
-        }
-        
-        function renderCustomSankey(svg, processed, width, height, margin) {
-            console.log('🎨 Rendering beautiful custom Sankey...');
-            
-            const innerWidth = width - margin.left - margin.right;
-            const innerHeight = height - margin.top - margin.bottom;
-            
-            // Add zoom and pan functionality - only with Ctrl key
-            const zoom = d3.zoom()
-                .scaleExtent([0.3, 3])
-                .filter(event => {
-                    // Only allow zoom when Ctrl key is pressed
-                    if (event.type === 'wheel') {
-                        if (event.ctrlKey || event.metaKey) {
-                            event.preventDefault(); // Prevent page scroll
-                            return true;
-                        }
-                        return false; // Allow normal scroll without zoom
-                    }
-                    return true; // Allow other zoom interactions (drag, touch)
-                })
-                .on('zoom', (event) => {
-                    g.attr('transform', `translate(${margin.left},${margin.top}) ${event.transform}`);
-                });
-            
-            svg.call(zoom);
-            
-            // Create main group
-            const g = svg.append('g')
-                .attr('transform', `translate(${margin.left},${margin.top})`);
-            
-            // Calculate layer positions with more space for labels
-            const layerWidth = innerWidth / 5;
-            const layerPositions = [layerWidth * 0.5, layerWidth * 1.5, layerWidth * 2.5, layerWidth * 3.5];
-            const nodeWidth = 30;
-            
-            // Calculate node positions and sizes with better proportions
-            processed.layers.forEach((layer, layerIndex) => {
-                const totalValue = d3.sum(layer, d => d.value);
-                const availableHeight = innerHeight - 150; // More padding for labels
-                
-                // Use square root scaling for better visual proportion
-                const maxNodeHeight = Math.min(60, availableHeight / layer.length); // Cap height
-                const scale = d3.scaleSqrt()
-                    .domain([0, d3.max(layer, d => d.value)])
-                    .range([15, maxNodeHeight]); // Minimum 15px height
-                
-                // Calculate total needed height
-                const totalNeededHeight = d3.sum(layer, d => scale(d.value)) + (layer.length - 1) * 12;
-                const startY = Math.max(80, (innerHeight - totalNeededHeight) / 2);
-                
-                let currentY = startY;
-                
-                layer.forEach(node => {
-                    node.x = layerPositions[layerIndex];
-                    node.y = currentY;
-                    node.width = nodeWidth;
-                    node.height = scale(node.value);
-                    currentY += node.height + 12; // Better spacing
-                });
-            });
-            
-            // Create beautiful gradient definitions
-            const defs = svg.append('defs');
-            
-            // Add gradients for each color
-            Object.entries(CONFIG.colors).forEach(([key, color]) => {
-                const gradient = defs.append('linearGradient')
-                    .attr('id', `gradient-${key}`)
-                    .attr('gradientUnits', 'userSpaceOnUse');
-                
-                gradient.append('stop')
-                    .attr('offset', '0%')
-                    .attr('stop-color', color)
-                    .attr('stop-opacity', 0.8);
-                    
-                gradient.append('stop')
-                    .attr('offset', '100%')
-                    .attr('stop-color', color)
-                    .attr('stop-opacity', 0.3);
-            });
-            
-            // Draw beautiful curved connections
-            const linksGroup = g.append('g').attr('class', 'sankey-links');
-            
-            processed.connections.forEach(conn => {
-                const sourceNode = conn.source;
-                const targetNode = conn.target;
-                
-                const strokeWidth = Math.max(2, Math.sqrt(conn.value) * 3);
-                
-                // Create beautiful curved path
-                const sourceCenterY = sourceNode.y + sourceNode.height / 2;
-                const targetCenterY = targetNode.y + targetNode.height / 2;
-                
-                const sourceX = sourceNode.x + sourceNode.width;
-                const targetX = targetNode.x;
-                
-                const midX = (sourceX + targetX) / 2;
-                
-                const path = d3.path();
-                path.moveTo(sourceX, sourceCenterY);
-                path.bezierCurveTo(midX, sourceCenterY, midX, targetCenterY, targetX, targetCenterY);
-                
-                linksGroup.append('path')
-                    .attr('d', path.toString())
-                    .style('fill', 'none')
-                    .style('stroke', conn.color)
-                    .style('stroke-width', strokeWidth)
-                    .style('stroke-opacity', 0.6)
-                    .style('cursor', 'pointer')
-                    .on('mouseover', function(event) {
-                        d3.select(this).style('stroke-opacity', 0.9);
-                        showTooltip(event, `${conn.source.name} → ${conn.target.name}<br>연결: ${conn.value}개`);
-                    })
-                    .on('mouseout', function() {
-                        d3.select(this).style('stroke-opacity', 0.6);
-                        hideTooltip();
-                    });
-            });
-            
-            // Draw beautiful nodes
-            const nodesGroup = g.append('g').attr('class', 'sankey-nodes');
-            
-            processed.layers.forEach(layer => {
-                layer.forEach(node => {
-                    const nodeGroup = nodesGroup.append('g')
-                        .attr('transform', `translate(${node.x},${node.y})`)
-                        .style('cursor', 'pointer');
-                    
-                    // Node rectangle with rounded corners (back to simple version)
-                    nodeGroup.append('rect')
-                        .attr('width', node.width)
-                        .attr('height', node.height)
-                        .attr('rx', 4)
-                        .attr('ry', 4)
-                        .style('fill', node.color)
-                        .style('stroke', '#fff')
-                        .style('stroke-width', 2)
-                        .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
-                        .on('mouseover', function(event) {
-                            // Only show tooltips for projects (layer 2) and contractors (layer 3)
-                            if (layerIndex === 2 || layerIndex === 3) {
-                                d3.select(this).style('fill', d3.color(node.color).brighter(0.3));
-                                const layerName = layerIndex === 2 ? '프로젝트' : '발주처';
-                                showSankeyTooltip(event, `<strong>${node.name}</strong><br>${layerName}: ${node.value}개`);
-                            }
-                        })
-                        .on('mouseout', function() {
-                            if (layerIndex === 2 || layerIndex === 3) {
-                                d3.select(this).style('fill', node.color);
-                                hideSankeyTooltip();
-                            }
-                        });
-                    
-                    // Only add text labels for contractors (layer 3) and only top 10
-                    if (layerIndex === 3) { // 발주처 layer
-                        // Sort contractors by value and get top 10
-                        const sortedNodes = processed.layers[3].slice().sort((a, b) => b.value - a.value);
-                        const isTopTen = sortedNodes.slice(0, 10).includes(node);
-                        
-                        if (isTopTen) {
-                            const labelX = node.x + node.width + 8;
-                            const labelY = node.y + node.height / 2;
-                            
-                            // Clean text label without background box
-                            g.append('text')
-                                .attr('x', labelX)
-                                .attr('y', labelY)
-                                .attr('dy', '0.35em')
-                                .style('fill', '#2d3748')
-                                .style('font-size', '12px')
-                                .style('font-weight', '600')
-                                .style('pointer-events', 'none')
-                                .text(node.name.length > 15 ? node.name.substring(0, 15) + '...' : node.name);
-                        }
-                    }
-                });
-            });
-            
-            // Add enhanced layer headers with backgrounds
-            const layerLabels = ['분야', '용역', '프로젝트', '발주처'];
-            const layerColors = [CONFIG.colors.field, CONFIG.colors.service, CONFIG.colors.project, CONFIG.colors.contractor];
-            
-            layerLabels.forEach((label, i) => {
-                const headerX = margin.left + layerPositions[i] + nodeWidth / 2;
-                const headerY = margin.top - 70;
-                
-                // Add header background
-                svg.append('rect')
-                    .attr('x', headerX - 45)
-                    .attr('y', headerY - 20)
-                    .attr('width', 90)
-                    .attr('height', 50)
-                    .attr('rx', 10)
-                    .style('fill', layerColors[i])
-                    .style('fill-opacity', 0.15)
-                    .style('stroke', layerColors[i])
-                    .style('stroke-width', 2)
-                    .style('filter', 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))');
-                
-                // Add main header text
-                svg.append('text')
-                    .attr('x', headerX)
-                    .attr('y', headerY - 5)
-                    .attr('text-anchor', 'middle')
-                    .style('fill', layerColors[i])
-                    .style('font-size', '16px')
-                    .style('font-weight', '700')
-                    .style('text-shadow', '0 1px 2px rgba(0,0,0,0.1)')
-                    .text(label);
-                    
-                // Add item count with better styling
-                svg.append('text')
-                    .attr('x', headerX)
-                    .attr('y', headerY + 12)
-                    .attr('text-anchor', 'middle')
-                    .style('fill', '#4a5568')
-                    .style('font-size', '11px')
-                    .style('font-weight', '600')
-                    .text(`${processed.layers[i].length}개 항목`);
-            });
-            
-            console.log('✨ Beautiful Custom Sankey rendered successfully!');
-        }
-        
-        function renderEmptyState(svg, width, height) {
-            svg.append('text')
-                .attr('x', width / 2)
-                .attr('y', height / 2)
-                .attr('text-anchor', 'middle')
-                .style('fill', '#a0aec0')
-                .style('font-size', '18px')
-                .style('font-weight', '500')
-                .text('표시할 데이터가 없습니다');
-        }
-        
-        function showSankeyTooltip(event, content) {
-            const tooltip = document.getElementById('tooltip');
-            tooltip.innerHTML = content;
-            tooltip.style.left = (event.pageX + 10) + 'px';
-            tooltip.style.top = (event.pageY - 10) + 'px';
-            tooltip.dataset.show = 'true';
-        }
-        
-        function hideSankeyTooltip() {
-            const tooltip = document.getElementById('tooltip');
-            tooltip.dataset.show = 'false';
-        }
-        
-        // ==========================================
-        // MINIMAP AND NAVIGATION FUNCTIONS
-        // ==========================================
-        
-        function createMinimap(svg, sankeyData, width, height, margin, zoom) {
-            const minimapWidth = 200;
-            const minimapHeight = 120;
-            const minimapMargin = 20;
-            
-            // Create minimap group
-            const minimapGroup = svg.append('g')
-                .attr('class', 'minimap')
-                .attr('transform', `translate(${width - minimapWidth - minimapMargin}, ${height - minimapHeight - minimapMargin})`);
-            
-            // Minimap background
-            minimapGroup.append('rect')
-                .attr('width', minimapWidth)
-                .attr('height', minimapHeight)
-                .attr('fill', 'var(--surface)')
-                .attr('stroke', 'var(--border-primary)')
-                .attr('stroke-width', 2)
-                .attr('rx', 8)
-                .style('filter', 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))')
-                .style('backdrop-filter', 'blur(8px)');
-            
-            // Title
-            minimapGroup.append('text')
-                .attr('x', minimapWidth / 2)
-                .attr('y', 15)
-                .attr('text-anchor', 'middle')
-                .style('fill', 'var(--text-secondary)')
-                .style('font-size', '11px')
-                .style('font-weight', '600')
-                .text('전체 뷰');
-            
-            // Calculate scale for minimap content
-            const contentBounds = sankeyData.contentBounds;
-            const scaleX = (minimapWidth - 20) / contentBounds.width;
-            const scaleY = (minimapHeight - 40) / contentBounds.actualHeight;
-            const minimapScale = Math.min(scaleX, scaleY);
-            
-            // Create simplified minimap content
-            const minimapContent = minimapGroup.append('g')
-                .attr('transform', `translate(10, 25) scale(${minimapScale})`);
-            
-            // Draw simplified layers
-            sankeyData.layers.forEach((layer, layerIndex) => {
-                const layerColor = [
-                    CONFIG.colors.field,
-                    CONFIG.colors.service, 
-                    CONFIG.colors.project,
-                    CONFIG.colors.contractor
-                ][layerIndex];
-                
-                const layerGroup = minimapContent.append('g');
-                
-                layer.forEach(node => {
-                    layerGroup.append('rect')
-                        .attr('x', node.x)
-                        .attr('y', node.y)
-                        .attr('width', node.width)
-                        .attr('height', Math.max(2, node.height * 0.3)) // Simplified height
-                        .attr('fill', layerColor)
-                        .attr('opacity', 0.8);
-                });
-            });
-            
-            // Create viewport indicator
-            const viewportIndicator = minimapGroup.append('rect')
-                .attr('class', 'viewport-indicator')
-                .attr('fill', 'none')
-                .attr('stroke', CONFIG.colors.highlight)
-                .attr('stroke-width', 2)
-                .attr('stroke-dasharray', '3,3')
-                .style('pointer-events', 'none');
-            
-            // Store references for updates
-            svg.minimapData = {
-                group: minimapGroup,
-                content: minimapContent,
-                viewportIndicator: viewportIndicator,
-                scale: minimapScale,
-                width: minimapWidth,
-                height: minimapHeight,
-                contentBounds: contentBounds
-            };
-            
-            // Add click navigation
-            minimapGroup.select('rect')
-                .style('cursor', 'pointer')
-                .on('click', function(event) {
-                    const [mouseX, mouseY] = d3.pointer(event, this);
-                    const contentX = (mouseX - 10) / minimapScale;
-                    const contentY = (mouseY - 25) / minimapScale;
-                    
-                    // Calculate new transform to center the clicked point
-                    const newX = width / 2 - contentX - margin.left;
-                    const newY = height / 2 - contentY - margin.top;
-                    
-                    const newTransform = d3.zoomIdentity.translate(newX, newY);
-                    svg.transition()
-                        .duration(500)
-                        .call(zoom.transform, newTransform);
-                });
-            
-            // Initial viewport update
-            updateMinimap(d3.zoomIdentity, sankeyData, width, height);
-        }
-        
-        function updateMinimap(transform, sankeyData, width, height) {
-            const svg = d3.select('#graphCanvas');
-            const minimapData = svg.node().minimapData;
-            
-            if (!minimapData) return;
-            
-            const { viewportIndicator, scale, width: minimapWidth, height: minimapHeight, contentBounds } = minimapData;
-            
-            // Calculate visible area in content coordinates
-            const visibleX = -transform.x / transform.k;
-            const visibleY = -transform.y / transform.k;
-            const visibleWidth = width / transform.k;
-            const visibleHeight = height / transform.k;
-            
-            // Convert to minimap coordinates
-            const minimapX = 10 + (visibleX * scale);
-            const minimapY = 25 + (visibleY * scale);
-            const minimapVisibleWidth = visibleWidth * scale;
-            const minimapVisibleHeight = visibleHeight * scale;
-            
-            // Update viewport indicator
-            viewportIndicator
-                .attr('x', Math.max(10, Math.min(minimapX, minimapWidth - 10)))
-                .attr('y', Math.max(25, Math.min(minimapY, minimapHeight - 15)))
-                .attr('width', Math.min(minimapVisibleWidth, minimapWidth - 20))
-                .attr('height', Math.min(minimapVisibleHeight, minimapHeight - 40));
-        }
-        
-        function createLayerNavigation(svg, sankeyData, width, height, margin, zoom) {
-            const navWidth = 60;
-            const navItemHeight = 50;
-            const navMargin = 20;
-            const totalNavHeight = sankeyData.layers.length * navItemHeight + 40;
-            
-            // Create navigation group
-            const navGroup = svg.append('g')
-                .attr('class', 'layer-navigation')
-                .attr('transform', `translate(${navMargin}, ${(height - totalNavHeight) / 2})`);
-            
-            // Navigation background
-            navGroup.append('rect')
-                .attr('width', navWidth)
-                .attr('height', totalNavHeight)
-                .attr('fill', 'var(--surface)')
-                .attr('stroke', 'var(--border-primary)')
-                .attr('stroke-width', 2)
-                .attr('rx', 12)
-                .style('filter', 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))')
-                .style('backdrop-filter', 'blur(8px)');
-            
-            // Title
-            navGroup.append('text')
-                .attr('x', navWidth / 2)
-                .attr('y', 20)
-                .attr('text-anchor', 'middle')
-                .style('fill', 'var(--text-secondary)')
-                .style('font-size', '10px')
-                .style('font-weight', '600')
-                .text('레이어');
-            
-            const layerLabels = ['분야', '용역', '프로젝트', '발주처'];
-            const layerColors = [
-                CONFIG.colors.field,
-                CONFIG.colors.service,
-                CONFIG.colors.project,
-                CONFIG.colors.contractor
-            ];
-            
-            // Create navigation items
-            sankeyData.layers.forEach((layer, layerIndex) => {
-                const yPos = 30 + layerIndex * navItemHeight;
-                const layerWidth = width / 5;
-                const targetX = layerWidth * (layerIndex + 0.5) - width / 2;
-                
-                const navItem = navGroup.append('g')
-                    .attr('class', 'nav-item')
-                    .style('cursor', 'pointer');
-                
-                // Layer button
-                navItem.append('rect')
-                    .attr('x', 8)
-                    .attr('y', yPos)
-                    .attr('width', navWidth - 16)
-                    .attr('height', navItemHeight - 8)
-                    .attr('fill', layerColors[layerIndex])
-                    .attr('fill-opacity', 0.1)
-                    .attr('stroke', layerColors[layerIndex])
-                    .attr('stroke-width', 2)
-                    .attr('rx', 6)
-                    .style('transition', 'all 0.2s ease');
-                
-                // Layer icon (colored circle)
-                navItem.append('circle')
-                    .attr('cx', navWidth / 2)
-                    .attr('cy', yPos + 10)
-                    .attr('r', 6)
-                    .attr('fill', layerColors[layerIndex]);
-                
-                // Layer label
-                navItem.append('text')
-                    .attr('x', navWidth / 2)
-                    .attr('y', yPos + 25)
-                    .attr('text-anchor', 'middle')
-                    .style('fill', 'var(--text-primary)')
-                    .style('font-size', '10px')
-                    .style('font-weight', '600')
-                    .text(layerLabels[layerIndex]);
-                
-                // Item count
-                navItem.append('text')
-                    .attr('x', navWidth / 2)
-                    .attr('y', yPos + 35)
-                    .attr('text-anchor', 'middle')
-                    .style('fill', 'var(--text-tertiary)')
-                    .style('font-size', '8px')
-                    .text(layer.length);
-                
-                // Click handler to jump to layer
-                navItem.on('click', function() {
-                    // Calculate the center position of the target layer
-                    const newX = -targetX;
-                    const newY = 0; // Keep current Y position
-                    
-                    const currentTransform = d3.zoomTransform(svg.node());
-                    const newTransform = d3.zoomIdentity
-                        .scale(currentTransform.k)
-                        .translate(newX, currentTransform.y);
-                    
-                    svg.transition()
-                        .duration(800)
-                        .ease(d3.easeCubicOut)
-                        .call(zoom.transform, newTransform);
-                })
-                .on('mouseenter', function() {
-                    d3.select(this).select('rect')
-                        .attr('fill-opacity', 0.2)
-                        .attr('stroke-width', 3);
-                })
-                .on('mouseleave', function() {
-                    d3.select(this).select('rect')
-                        .attr('fill-opacity', 0.1)
-                        .attr('stroke-width', 2);
-                });
-            });
-            
-            // Add "전체 뷰" button
-            const resetButton = navGroup.append('g')
-                .attr('class', 'reset-view-btn')
-                .style('cursor', 'pointer');
-            
-            const resetY = 30 + sankeyData.layers.length * navItemHeight;
-            
-            resetButton.append('rect')
-                .attr('x', 8)
-                .attr('y', resetY)
-                .attr('width', navWidth - 16)
-                .attr('height', navItemHeight - 18)
-                .attr('fill', 'var(--surface-variant)')
-                .attr('stroke', 'var(--border-secondary)')
-                .attr('stroke-width', 1)
-                .attr('rx', 6)
-                .style('transition', 'all 0.2s ease');
-            
-            resetButton.append('text')
-                .attr('x', navWidth / 2)
-                .attr('y', resetY + 20)
-                .attr('text-anchor', 'middle')
-                .style('fill', 'var(--text-secondary)')
-                .style('font-size', '9px')
-                .style('font-weight', '600')
-                .text('전체 뷰');
-            
-            resetButton.on('click', function() {
-                svg.transition()
-                    .duration(1000)
-                    .ease(d3.easeCubicOut)
-                    .call(zoom.transform, d3.zoomIdentity);
-            })
-            .on('mouseenter', function() {
-                d3.select(this).select('rect')
-                    .attr('fill', 'var(--surface-hover)')
-                    .attr('stroke-width', 2);
-            })
-            .on('mouseleave', function() {
-                d3.select(this).select('rect')
-                    .attr('fill', 'var(--surface-variant)')
-                    .attr('stroke-width', 1);
-            });
-        }
-        
-        // ==========================================
-        // 🎨 WORLD-CLASS PREMIUM SANKEY DIAGRAM
-        // ==========================================
-        
-        function createPremiumSankey(svg, data, width, height) {
-            console.log('🎨 Creating WORLD-CLASS Premium Sankey Diagram with', data.length, 'records');
-            
-            const margin = { top: 120, right: 150, bottom: 80, left: 120 };
-            const innerWidth = width - margin.left - margin.right;
-            const innerHeight = height - margin.top - margin.bottom;
-            
-            // Add intuitive scroll system with smart controls
-            const zoom = d3.zoom()
-                .scaleExtent([0.3, 3])
-                .filter(event => {
-                    if (event.type === 'wheel') {
-                        if (event.ctrlKey || event.metaKey) {
-                            // Ctrl+Wheel = Zoom
-                            event.preventDefault();
-                            return true;
-                        } else if (event.shiftKey) {
-                            // Shift+Wheel = Horizontal scroll
-                            event.preventDefault();
-                            const transform = d3.zoomTransform(svg.node());
-                            const newTransform = transform.translate(-event.deltaY * 0.5, 0);
-                            svg.call(zoom.transform, newTransform);
-                            return false;
-                        } else {
-                            // Normal Wheel = Vertical scroll
-                            event.preventDefault();
-                            const transform = d3.zoomTransform(svg.node());
-                            const newTransform = transform.translate(0, -event.deltaY * 0.5);
-                            svg.call(zoom.transform, newTransform);
-                            return false;
-                        }
-                    }
-                    return true; // Allow other zoom interactions (drag, touch)
-                })
-                .on('zoom', (event) => {
-                    mainGroup.attr('transform', `translate(${margin.left}, ${margin.top}) ${event.transform}`);
-                    updateMinimap(event.transform, sankeyData, width, height);
-                });
-            
-            svg.call(zoom);
-            
-            // Add background click handler
-            svg.on('click', handleSankeyBackgroundClick);
-            
-            // Main container with premium styling
-            const mainGroup = svg.append('g')
-                .attr('transform', `translate(${margin.left}, ${margin.top})`);
-            
-            // Process data with proper relationship mapping
-            const sankeyData = processDataForPremiumSankey(data);
-            
-            // Calculate optimal node positions
-            calculatePremiumPositions(sankeyData, innerWidth, innerHeight);
-            
-            // Render with premium quality
-            renderPremiumVisualization(svg, mainGroup, sankeyData, margin, innerWidth, innerHeight);
-            
-            // Add minimap for navigation
-            createMinimap(svg, sankeyData, width, height, margin, zoom);
-            
-            // Add layer navigation
-            createLayerNavigation(svg, sankeyData, width, height, margin, zoom);
-            
-            console.log('✨ WORLD-CLASS Premium Sankey completed!');
-        }
-        
-        function processDataForPremiumSankey(data) {
-            console.log('🔧 Processing data with premium algorithms...');
-            
-            // Initialize layers with proper structure
-            const layers = {
-                fields: new Map(),
-                services: new Map(), 
-                projects: new Map(),
-                contractors: new Map()
-            };
-            
-            const connections = new Map(); // Track actual data relationships
-            
-            // Process each record to build relationships
-            data.forEach(record => {
-                const field = record.분야;
-                const service = record.용역;
-                const project = record.프로젝트명;
-                const contractor = record.발주처;
-                
-                // Build nodes
-                if (!layers.fields.has(field)) {
-                    layers.fields.set(field, {
-                        id: `field_${field}`,
-                        name: field,
-                        value: 0,
-                        layer: 0,
-                        color: CONFIG.colors.field,
-                        connections: { to: new Set(), from: new Set() }
-                    });
-                }
-                
-                if (!layers.services.has(service)) {
-                    layers.services.set(service, {
-                        id: `service_${service}`,
-                        name: service,
-                        value: 0,
-                        layer: 1,
-                        color: CONFIG.colors.service,
-                        connections: { to: new Set(), from: new Set() }
-                    });
-                }
-                
-                if (!layers.projects.has(project)) {
-                    layers.projects.set(project, {
-                        id: `project_${project}`,
-                        name: project,
-                        value: 0,
-                        layer: 2,
-                        color: CONFIG.colors.project,
-                        connections: { to: new Set(), from: new Set() }
-                    });
-                }
-                
-                if (!layers.contractors.has(contractor)) {
-                    layers.contractors.set(contractor, {
-                        id: `contractor_${contractor}`,
-                        name: contractor,
-                        value: 0,
-                        layer: 3,
-                        color: CONFIG.colors.contractor,
-                        connections: { to: new Set(), from: new Set() }
-                    });
-                }
-                
-                // Increment values
-                layers.fields.get(field).value++;
-                layers.services.get(service).value++;
-                layers.projects.get(project).value++;
-                layers.contractors.get(contractor).value++;
-                
-                // Track connections with actual data relationships
-                const conn1Key = `${field}->${service}`;
-                const conn2Key = `${service}->${project}`;
-                const conn3Key = `${project}->${contractor}`;
-                
-                [conn1Key, conn2Key, conn3Key].forEach(key => {
-                    if (!connections.has(key)) {
-                        const [sourceName, targetName] = key.split('->');
-                        connections.set(key, {
-                            key,
-                            sourceName,
-                            targetName,
-                            value: 0
-                        });
-                    }
-                    connections.get(key).value++;
-                });
-                
-                // Track node connections
-                layers.fields.get(field).connections.to.add(service);
-                layers.services.get(service).connections.from.add(field);
-                layers.services.get(service).connections.to.add(project);
-                layers.projects.get(project).connections.from.add(service);
-                layers.projects.get(project).connections.to.add(contractor);
-                layers.contractors.get(contractor).connections.from.add(project);
-            });
-            
-            return {
-                layers: [
-                    Array.from(layers.fields.values()).sort((a, b) => b.value - a.value),
-                    Array.from(layers.services.values()).sort((a, b) => b.value - a.value),
-                    Array.from(layers.projects.values()).sort((a, b) => b.value - a.value),
-                    Array.from(layers.contractors.values()).sort((a, b) => b.value - a.value)
-                ],
-                connections: Array.from(connections.values()).sort((a, b) => b.value - a.value),
-                stats: {
-                    totalRecords: data.length,
-                    totalConnections: connections.size
-                }
-            };
-        }
-        
-        function calculatePremiumPositions(sankeyData, width, height) {
-            const layerWidth = width / 5;
-            const nodeWidth = 40;
-            const minNodeHeight = 20;
-            const maxNodeHeight = 80;
-            const nodeSpacing = 12;
-            
-            // Calculate required height for the largest layer
-            let maxRequiredHeight = 0;
-            
-            sankeyData.layers.forEach((layer, layerIndex) => {
-                const x = layerWidth * (layerIndex + 0.5);
-                
-                // Premium scaling with square root for better proportions
-                const heightScale = d3.scaleSqrt()
-                    .domain([1, d3.max(layer, d => d.value)])
-                    .range([minNodeHeight, maxNodeHeight]);
-                
-                // Calculate total needed height for this layer
-                const totalNeededHeight = d3.sum(layer, d => heightScale(d.value)) + (layer.length - 1) * nodeSpacing;
-                maxRequiredHeight = Math.max(maxRequiredHeight, totalNeededHeight);
-                
-                // Position nodes with more generous spacing
-                const startY = 100; // Fixed top margin
-                let currentY = startY;
-                
-                layer.forEach(node => {
-                    node.x = x - nodeWidth / 2;
-                    node.y = currentY;
-                    node.width = nodeWidth;
-                    node.height = heightScale(node.value);
-                    node.centerX = x;
-                    node.centerY = currentY + node.height / 2;
-                    currentY += node.height + nodeSpacing;
-                });
-            });
-            
-            // Store the actual content dimensions for minimap
-            sankeyData.contentBounds = {
-                width: width,
-                height: maxRequiredHeight + 200, // Add bottom margin
-                actualHeight: Math.max(height, maxRequiredHeight + 200)
-            };
-        }
-        
-        function renderPremiumVisualization(svg, mainGroup, sankeyData, margin, width, height) {
-            // Add premium gradient definitions
-            addPremiumGradients(svg, sankeyData);
-            
-            // Render connections with advanced algorithms
-            renderPremiumConnections(mainGroup, sankeyData);
-            
-            // Render nodes with premium styling
-            renderPremiumNodes(mainGroup, sankeyData);
-            
-            // Add premium headers
-            addPremiumHeaders(svg, sankeyData, margin, width);
-        }
-        
-        function addPremiumGradients(svg, sankeyData) {
-            const defs = svg.append('defs');
-            
-            // Create gradients for each connection
-            sankeyData.connections.forEach((conn, i) => {
-                const sourceNode = findNodeByName(sankeyData.layers, conn.sourceName);
-                const targetNode = findNodeByName(sankeyData.layers, conn.targetName);
-                
-                if (sourceNode && targetNode) {
-                    const gradientId = `premium-gradient-${i}`;
-                    const gradient = defs.append('linearGradient')
-                        .attr('id', gradientId)
-                        .attr('gradientUnits', 'userSpaceOnUse')
-                        .attr('x1', sourceNode.centerX)
-                        .attr('y1', sourceNode.centerY)
-                        .attr('x2', targetNode.centerX) 
-                        .attr('y2', targetNode.centerY);
-                    
-                    gradient.append('stop')
-                        .attr('offset', '0%')
-                        .attr('stop-color', sourceNode.color)
-                        .attr('stop-opacity', 0.8);
-                    
-                    gradient.append('stop')
-                        .attr('offset', '100%')
-                        .attr('stop-color', targetNode.color)
-                        .attr('stop-opacity', 0.8);
-                    
-                    conn.gradientId = gradientId;
-                }
-            });
-        }
-        
-        function renderPremiumConnections(group, sankeyData) {
-            const linksGroup = group.append('g').attr('class', 'premium-links');
-            
-            sankeyData.connections.forEach(conn => {
-                const sourceNode = findNodeByName(sankeyData.layers, conn.sourceName);
-                const targetNode = findNodeByName(sankeyData.layers, conn.targetName);
-                
-                if (sourceNode && targetNode) {
-                    const strokeWidth = Math.max(3, Math.sqrt(conn.value) * 2);
-                    
-                    // Create beautiful curved path with control points
-                    const sourceX = sourceNode.x + sourceNode.width;
-                    const targetX = targetNode.x;
-                    const sourceY = sourceNode.centerY;
-                    const targetY = targetNode.centerY;
-                    
-                    const controlPointDistance = (targetX - sourceX) * 0.6;
-                    const controlX1 = sourceX + controlPointDistance;
-                    const controlX2 = targetX - controlPointDistance;
-                    
-                    const path = `M${sourceX},${sourceY} 
-                                 C${controlX1},${sourceY} ${controlX2},${targetY} ${targetX},${targetY}`;
-                    
-                    linksGroup.append('path')
-                        .datum(conn)
-                        .attr('d', path)
-                        .style('fill', 'none')
-                        .style('stroke', `url(#${conn.gradientId})`)
-                        .style('stroke-width', strokeWidth)
-                        .style('stroke-opacity', 0.7)
-                        .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
-                        .classed('sankey-link', true)
-                        .append('title')
-                        .text(`${conn.sourceName} → ${conn.targetName}: ${conn.value}개`);
-                }
-            });
-        }
-        
-        function renderPremiumNodes(group, sankeyData) {
-            const nodesGroup = group.append('g').attr('class', 'premium-nodes');
-            
-            sankeyData.layers.forEach((layer, layerIndex) => {
-                layer.forEach((node, nodeIndex) => {
-                    const nodeGroup = nodesGroup.append('g')
-                        .attr('transform', `translate(${node.x}, ${node.y})`);
-                    
-                    // Premium node with gradient and shadow
-                    nodeGroup.append('rect')
-                        .attr('width', node.width)
-                        .attr('height', node.height)
-                        .attr('rx', 8)
-                        .attr('ry', 8)
-                        .style('fill', node.color)
-                        .style('stroke', currentTheme === 'dark' ? '#374151' : '#ffffff')
-                        .style('stroke-width', 3)
-                        .style('filter', 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))')
-                        .style('cursor', 'pointer')
-                        .classed('sankey-node', true)
-                        .attr('data-node-id', node.id)
-                        .on('click', function(event) {
-                            event.stopPropagation();
-                            handleSankeyNodeClick(node, sankeyData);
-                        })
-                        .on('mouseover', function(event) {
-                            if (layerIndex >= 2) {
-                                d3.select(this)
-                                    .style('fill', d3.color(node.color).brighter(0.4))
-                                    .style('filter', 'drop-shadow(0 6px 20px rgba(0,0,0,0.25))');
-                                showPremiumTooltip(event, node);
-                            }
-                        })
-                        .on('mouseout', function() {
-                            if (layerIndex >= 2) {
-                                d3.select(this)
-                                    .style('fill', node.color)
-                                    .style('filter', 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))');
-                                hidePremiumTooltip();
-                            }
-                        });
-                    
-                    // Add premium text labels
-                    addPremiumNodeLabels(nodeGroup, node, layerIndex, nodeIndex);
-                });
-            });
-        }
-        
-        function addPremiumNodeLabels(nodeGroup, node, layerIndex, nodeIndex) {
-            const textColor = currentTheme === 'dark' ? '#f1f5f9' : '#1e293b';
-            const valueColor = currentTheme === 'dark' ? '#94a3b8' : '#64748b';
-            
-            // Show labels for ALL nodes in 분야(0) and 용역(1) layers, top 10 contractors in layer 3
-            if (layerIndex === 0 || layerIndex === 1 || (layerIndex === 3 && nodeIndex < 10)) {
-                const xOffset = layerIndex <= 1 ? -12 : node.width + 12; // Left side for fields/services, right side for contractors
-                const textAnchor = layerIndex <= 1 ? 'end' : 'start';
-                
-                nodeGroup.append('text')
-                    .attr('x', xOffset)
-                    .attr('y', node.height / 2 - 6)
-                    .attr('text-anchor', textAnchor)
-                    .style('font-family', '"Inter", system-ui, sans-serif')
-                    .style('font-size', layerIndex <= 1 ? '14px' : '13px')
-                    .style('font-weight', '600')
-                    .style('fill', textColor)
-                    .style('text-shadow', currentTheme === 'dark' ? '0 1px 2px rgba(0,0,0,0.8)' : '0 1px 2px rgba(255,255,255,0.8)')
-                    .text(node.name.length > (layerIndex <= 1 ? 25 : 18) ? 
-                          node.name.substring(0, layerIndex <= 1 ? 25 : 18) + '...' : 
-                          node.name);
-                
-                nodeGroup.append('text')
-                    .attr('x', xOffset)
-                    .attr('y', node.height / 2 + 8)
-                    .attr('text-anchor', textAnchor)
-                    .style('font-family', '"Inter", system-ui, sans-serif')
-                    .style('font-size', '11px')
-                    .style('font-weight', '500')
-                    .style('fill', valueColor)
-                    .style('text-shadow', currentTheme === 'dark' ? '0 1px 2px rgba(0,0,0,0.8)' : '0 1px 2px rgba(255,255,255,0.8)')
-                    .text(`${node.value}개 프로젝트`);
-            }
-        }
-        
-        function addPremiumHeaders(svg, sankeyData, margin, width) {
-            const labels = ['분야', '용역', '프로젝트', '발주처'];
-            const colors = [CONFIG.colors.field, CONFIG.colors.service, CONFIG.colors.project, CONFIG.colors.contractor];
-            const layerWidth = width / 5;
-            const headerTextColor = currentTheme === 'dark' ? '#f1f5f9' : '#1e293b';
-            const countTextColor = currentTheme === 'dark' ? '#94a3b8' : '#64748b';
-            
-            labels.forEach((label, i) => {
-                const x = margin.left + layerWidth * (i + 0.5);
-                const y = margin.top - 60;
-                
-                // Premium header background
-                svg.append('rect')
-                    .attr('x', x - 50)
-                    .attr('y', y - 25)
-                    .attr('width', 100)
-                    .attr('height', 45)
-                    .attr('rx', 12)
-                    .style('fill', colors[i])
-                    .style('fill-opacity', currentTheme === 'dark' ? 0.2 : 0.1)
-                    .style('stroke', colors[i])
-                    .style('stroke-width', 2)
-                    .style('filter', 'drop-shadow(0 4px 12px rgba(0,0,0,0.1))');
-                
-                // Header text
-                svg.append('text')
-                    .attr('x', x)
-                    .attr('y', y - 5)
-                    .attr('text-anchor', 'middle')
-                    .style('font-family', '"Inter", system-ui, sans-serif')
-                    .style('font-size', '16px')
-                    .style('font-weight', '700')
-                    .style('fill', colors[i])
-                    .style('text-shadow', '0 2px 4px rgba(0,0,0,0.1)')
-                    .text(label);
-                
-                // Count text
-                svg.append('text')
-                    .attr('x', x)
-                    .attr('y', y + 12)
-                    .attr('text-anchor', 'middle')
-                    .style('font-family', '"Inter", system-ui, sans-serif')
-                    .style('font-size', '12px')
-                    .style('font-weight', '600')
-                    .style('fill', countTextColor)
-                    .style('text-shadow', currentTheme === 'dark' ? '0 1px 2px rgba(0,0,0,0.8)' : '0 1px 2px rgba(255,255,255,0.8)')
-                    .text(`${sankeyData.layers[i].length}개 항목`);
-            });
-        }
-        
-        function findNodeByName(layers, name) {
-            for (const layer of layers) {
-                const node = layer.find(n => n.name === name);
-                if (node) return node;
-            }
-            return null;
-        }
-        
-        function showPremiumTooltip(event, node) {
-            const tooltip = document.getElementById('tooltip');
-            tooltip.innerHTML = `
-                <div style="font-weight: 700; margin-bottom: 6px; color: ${node.color};">${node.name}</div>
-                <div style="font-size: 13px; color: ${currentTheme === 'dark' ? '#cbd5e1' : '#475569'};">
-                    프로젝트 수: <strong>${node.value}개</strong><br>
-                    ${node.layer === 2 ? '발주처와 연결됨' : '다양한 분야 포함'}
-                </div>
-            `;
-            tooltip.style.left = (event.pageX + 15) + 'px';
-            tooltip.style.top = (event.pageY - 10) + 'px';
-            tooltip.dataset.show = 'true';
-        }
-        
-        function hidePremiumTooltip() {
-            document.getElementById('tooltip').dataset.show = 'false';
-        }
+  <main class="main">
+    <div class="stage">
+      <div class="legend reveal d4" id="legend"><div class="legend__t">분야 · Fields</div></div>
+      <svg id="viz" role="img" aria-label="EAN 실적 별자리 네트워크"></svg>
+      <div class="stage__hint">드래그 이동 · 스크롤 확대 · 노드 클릭으로 드릴다운</div>
+    </div>
+    <aside class="panel">
+      <div class="panel__scroll" id="panel"></div>
+    </aside>
+  </main>
 
-        // Global variable to track selected node
-        let selectedSankeyNode = null;
+  <section class="timeline">
+    <div class="timeline__h">
+      <span class="timeline__t">연도별 실적 · 드래그로 기간 선택</span>
+      <span class="timeline__sel" id="timeSel">전체 기간</span>
+    </div>
+    <svg id="timeSvg" height="84"></svg>
+  </section>
+</div>
 
-        function handleSankeyNodeClick(clickedNode, sankeyData) {
-            console.log('🎯 Node clicked:', clickedNode.name);
-            
-            // Clear previous highlights
-            clearSankeyHighlights();
-            
-            // If clicking the same node, deselect it
-            if (selectedSankeyNode && selectedSankeyNode.id === clickedNode.id) {
-                selectedSankeyNode = null;
-                return;
-            }
-            
-            // Set new selected node
-            selectedSankeyNode = clickedNode;
-            
-            // Highlight connected nodes and links
-            highlightSankeyConnections(clickedNode, sankeyData);
-        }
+<div class="tip" id="tip"></div>
 
-        function highlightSankeyConnections(selectedNode, sankeyData) {
-            console.log('✨ Highlighting connections for:', selectedNode.name);
-            
-            // Find all connected nodes
-            const connectedNodes = new Set();
-            connectedNodes.add(selectedNode.id);
-            
-            // Find connections based on data relationships
-            sankeyData.connections.forEach(conn => {
-                if (conn.sourceName === selectedNode.name) {
-                    // Find target node
-                    sankeyData.layers.forEach(layer => {
-                        layer.forEach(node => {
-                            if (node.name === conn.targetName) {
-                                connectedNodes.add(node.id);
-                            }
-                        });
-                    });
-                } else if (conn.targetName === selectedNode.name) {
-                    // Find source node
-                    sankeyData.layers.forEach(layer => {
-                        layer.forEach(node => {
-                            if (node.name === conn.sourceName) {
-                                connectedNodes.add(node.id);
-                            }
-                        });
-                    });
-                }
-            });
-            
-            console.log('🔗 Connected nodes:', connectedNodes);
-            
-            // Highlight nodes
-            d3.selectAll('.sankey-node')
-                .style('opacity', function() {
-                    const nodeId = d3.select(this).attr('data-node-id');
-                    return connectedNodes.has(nodeId) ? 1.0 : 0.2;
-                })
-                .style('stroke-width', function() {
-                    const nodeId = d3.select(this).attr('data-node-id');
-                    return nodeId === selectedNode.id ? 6 : 3;
-                })
-                .style('stroke', function() {
-                    const nodeId = d3.select(this).attr('data-node-id');
-                    if (nodeId === selectedNode.id) {
-                        return currentTheme === 'dark' ? '#fbbf24' : '#f59e0b';
-                    }
-                    return connectedNodes.has(nodeId) ? 
-                           (currentTheme === 'dark' ? '#60a5fa' : '#3b82f6') : 
-                           (currentTheme === 'dark' ? '#374151' : '#ffffff');
-                });
-            
-            // Highlight connections
-            d3.selectAll('.sankey-link')
-                .style('opacity', function() {
-                    const linkData = d3.select(this).datum();
-                    if (!linkData) return 0.1;
-                    
-                    const isConnected = (linkData.sourceName === selectedNode.name || 
-                                       linkData.targetName === selectedNode.name);
-                    return isConnected ? 0.8 : 0.1;
-                })
-                .style('stroke-width', function() {
-                    const linkData = d3.select(this).datum();
-                    if (!linkData) return 1;
-                    
-                    const isConnected = (linkData.sourceName === selectedNode.name || 
-                                       linkData.targetName === selectedNode.name);
-                    return isConnected ? Math.max(3, linkData.value * 0.5) : 1;
-                });
-            
-            // Highlight text labels
-            d3.selectAll('.premium-nodes text')
-                .style('opacity', function() {
-                    const parentNode = d3.select(this.parentNode);
-                    const transform = parentNode.attr('transform');
-                    if (!transform) return 0.2;
-                    
-                    // Check if this text belongs to a connected node
-                    const nodeRect = parentNode.select('rect');
-                    const nodeId = nodeRect.attr('data-node-id');
-                    return connectedNodes.has(nodeId) ? 1.0 : 0.2;
-                });
-        }
+<div class="overlay" id="overlay">
+  <div class="loader" id="loader">
+    <div class="loader__ring"></div>
+    <div class="loader__txt">별자리를 그리는 중…</div>
+  </div>
+  <div class="errbox" id="errbox" style="display:none">
+    <h3>데이터를 불러올 수 없습니다</h3>
+    <p id="errmsg"></p>
+    <p style="font-size:12.5px;color:var(--ink-3)"><code>file://</code> 로 직접 열면 브라우저 보안상 데이터 로드가 차단됩니다. 로컬 서버로 여세요:<br/><code>python3 -m http.server</code> 후 <code>http://localhost:8000/</code></p>
+    <button onclick="location.reload()">다시 시도</button>
+  </div>
+</div>
 
-        function clearSankeyHighlights() {
-            console.log('🧹 Clearing Sankey highlights');
-            
-            // Reset all nodes
-            d3.selectAll('.sankey-node')
-                .style('opacity', 1.0)
-                .style('stroke-width', 3)
-                .style('stroke', currentTheme === 'dark' ? '#374151' : '#ffffff');
-            
-            // Reset all links
-            d3.selectAll('.sankey-link')
-                .style('opacity', 0.6)
-                .style('stroke-width', d => Math.max(1, d.value * 0.3));
-            
-            // Reset all text
-            d3.selectAll('.premium-nodes text')
-                .style('opacity', 1.0);
-        }
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+<script>
+"use strict";
+const PALETTE=["#e6b450","#46c6b4","#f2785c","#9b8cff","#84d06a","#54b6e8","#e879a6","#5fe0c0"];
+const SHORT={
+  "국내인허가 및 인증업무 분야":"국내 인허가·인증","입찰사업 분야":"입찰 사업","에너지성능분석 분야":"에너지 성능분석",
+  "연구용역 분야":"연구 용역","해외그린빌딩인증 및 평가 분야":"해외 그린빌딩","환경디자인 분야":"환경 디자인",
+  "환경시뮬레이션 분석 분야":"환경 시뮬레이션","탄소중립 컨설팅분야":"탄소중립 컨설팅"
+};
+const T=(s)=>String(s==null?"":s).trim();
+const short=(f)=>SHORT[f]||f.replace(/\s*분야\s*$/,"").trim()||f;
 
-        // Click outside to clear selection
-        function handleSankeyBackgroundClick() {
-            if (selectedSankeyNode) {
-                selectedSankeyNode = null;
-                clearSankeyHighlights();
-            }
-        }
-        
-        
-        // ==========================================
-        // EVENT HANDLERS
-        // ==========================================
-        function handleZoom(event) {
-            currentTransform = event.transform;
-            g.attr('transform', currentTransform);
-        }
-        
-        function handleNodeHover(event, d) {
-            hoveredNode = d;
-            showTooltip(event, d);
-            highlightConnectedNodes(d);
-        }
-        
-        function handleNodeOut() {
-            hoveredNode = null;
-            hideTooltip();
-            clearHighlights();
-        }
-        
-        function handleNodeClick(event, d) {
-            event.stopPropagation();
-            
-            if (selectedNodes.has(d.id)) {
-                selectedNodes.delete(d.id);
-            } else {
-                selectedNodes.add(d.id);
-            }
-            
-            updateNodeSelection();
-            updateStats();
-        }
-        
-        function dragStarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-        }
-        
-        function dragged(event, d) {
-            d.fx = event.x;
-            d.fy = event.y;
-        }
-        
-        function dragEnded(event, d) {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-        }
-        
-        // ==========================================
-        // UI FEEDBACK & HELPERS
-        // ==========================================
-        function showTooltip(event, d) {
-            const tooltip = document.getElementById('tooltip');
-            
-            // Enhanced tooltip with more information based on node type
-            let tooltipContent = `<strong>${d.name}</strong><br>`;
-            tooltipContent += `연결: ${d.connections}개<br>`;
-            
-            // Type-specific information
-            switch(d.type) {
-                case 'project':
-                    tooltipContent += `유형: 프로젝트<br>`;
-                    tooltipContent += `연도: ${d.year}<br>`;
-                    tooltipContent += `분야: ${d.field}<br>`;
-                    tooltipContent += `용역: ${d.service}`;
-                    break;
-                case 'contractor':
-                    tooltipContent += `유형: 발주처<br>`;
-                    const contractorProjects = allData.filter(item => item.발주처 === d.name);
-                    tooltipContent += `총 프로젝트: ${contractorProjects.length}개`;
-                    break;
-                case 'field':
-                    tooltipContent += `유형: 분야<br>`;
-                    const fieldProjects = allData.filter(item => item.분야 === d.name);
-                    tooltipContent += `관련 프로젝트: ${fieldProjects.length}개`;
-                    break;
-                case 'service':
-                    tooltipContent += `유형: 용역<br>`;
-                    const serviceProjects = allData.filter(item => item.용역 === d.name);
-                    tooltipContent += `관련 프로젝트: ${serviceProjects.length}개`;
-                    break;
-                default:
-                    tooltipContent += `유형: 기타`;
-            }
-            
-            tooltip.innerHTML = tooltipContent;
-            tooltip.style.left = event.pageX + 10 + 'px';
-            tooltip.style.top = event.pageY - 10 + 'px';
-            tooltip.dataset.show = 'true';
-        }
-        
-        function hideTooltip() {
-            document.getElementById('tooltip').dataset.show = 'false';
-        }
-        
-        function highlightConnectedNodes(d) {
-            const connectedIds = new Set();
-            connectedIds.add(d.id);
-            
-            links.forEach(link => {
-                if (link.source.id === d.id) connectedIds.add(link.target.id);
-                if (link.target.id === d.id) connectedIds.add(link.source.id);
-            });
-            
-            nodeGroup.selectAll('circle')
-                .style('opacity', node => connectedIds.has(node.id) ? 1 : 0.3);
-            
-            linkGroup.selectAll('line')
-                .style('opacity', link => 
-                    link.source.id === d.id || link.target.id === d.id ? 1 : 0.1);
-        }
-        
-        function clearHighlights() {
-            if (!hoveredNode && selectedNodes.size === 0) {
-                nodeGroup.selectAll('circle').style('opacity', 1);
-                linkGroup.selectAll('line').style('opacity', 0.6);
-            }
-        }
-        
-        function highlightSearchResults(matchedData) {
-            const matchedProjects = new Set(matchedData.map(d => `project_${d.프로젝트명}`));
-            const matchedContractors = new Set(matchedData.map(d => `contractor_${d.발주처}`));
-            const matchedFields = new Set(matchedData.map(d => `field_${d.분야}`));
-            const allMatched = new Set([...matchedProjects, ...matchedContractors, ...matchedFields]);
-            
-            nodeGroup.selectAll('circle')
-                .style('opacity', d => allMatched.has(d.id) ? 1 : 0.3)
-                .attr('stroke', d => allMatched.has(d.id) ? CONFIG.colors.highlight : '#fff')
-                .attr('stroke-width', d => allMatched.has(d.id) ? 3 : 2);
-        }
-        
-        function updateNodeSelection() {
-            nodeGroup.selectAll('circle')
-                .attr('stroke', d => selectedNodes.has(d.id) ? CONFIG.colors.highlight : '#fff')
-                .attr('stroke-width', d => selectedNodes.has(d.id) ? 3 : 2);
-        }
-        
-        function updateStats() {
-            const projectNodes = nodes.filter(d => d.type === 'project');
-            const contractorNodes = nodes.filter(d => d.type === 'contractor');
-            const fieldNodes = nodes.filter(d => d.type === 'field');
-            
-            document.getElementById('totalProjects').textContent = projectNodes.length.toLocaleString();
-            document.getElementById('totalServices').textContent = (contractorNodes.length + fieldNodes.length).toLocaleString();
-            document.getElementById('totalConnections').textContent = links.length.toLocaleString();
-            
-            const selectedInfo = document.getElementById('selectedInfo');
-            const selectedCount = document.getElementById('selectedCount');
-            
-            if (selectedNodes.size > 0) {
-                selectedInfo.style.display = 'flex';
-                selectedCount.textContent = selectedNodes.size;
-            } else {
-                selectedInfo.style.display = 'none';
-            }
-        }
-        
-        function hideLoading() {
-            const overlay = document.getElementById('loadingOverlay');
-            overlay.dataset.state = 'hidden';
-            setTimeout(() => overlay.remove(), 350);
-        }
-        
-        function displayDataInfo(metadata) {
-            const infoElement = document.createElement('div');
-            infoElement.id = 'dataInfo';
-            infoElement.style.cssText = `
-                position: absolute;
-                top: var(--space-6);
-                left: var(--space-6);
-                background: var(--surface);
-                backdrop-filter: blur(12px);
-                border: 1px solid var(--border-primary);
-                border-radius: var(--radius-lg);
-                padding: var(--space-3) var(--space-4);
-                font-size: var(--font-size-xs);
-                color: var(--text-secondary);
-                z-index: 5;
-                max-width: 250px;
-            `;
-            
-            const lastUpdated = new Date(metadata.generated_at);
-            const now = new Date();
-            const daysDiff = Math.floor((now - lastUpdated) / (1000 * 60 * 60 * 24));
-            
-            infoElement.innerHTML = `
-                <div style="font-weight: var(--font-weight-semibold); color: var(--text-primary); margin-bottom: var(--space-1);">
-                    데이터 정보
-                </div>
-                <div>업데이트: ${lastUpdated.toLocaleDateString('ko-KR')}</div>
-                <div>총 ${metadata.total_records.toLocaleString()}개 프로젝트</div>
-                <div>${metadata.contractors_count}개 계약처, ${metadata.fields_count}개 분야</div>
-                ${daysDiff > 7 ? `<div style="color: var(--warning); margin-top: var(--space-1);">⚠️ ${daysDiff}일 전 데이터</div>` : ''}
-            `;
-            
-            document.querySelector('.main').appendChild(infoElement);
-        }
+let RAW=[], FIELDS=[], colorOf=()=>"#888";
+let yearMin=2003, yearMax=2025, range=[2003,2025];
+let sim=null, gLink, gNode, zoomG, svg, zoomBehavior, nodes=[], links=[];
+let focusField=null, fuse=null, searchHits=null;
+const tip=document.getElementById("tip");
 
-        function showError(message) {
-            const overlay = document.getElementById('loadingOverlay');
-            if (!overlay) {
-                console.error('Loading overlay not found');
-                alert(`오류: ${message}`);
-                return;
-            }
-            
-            overlay.innerHTML = `
-                <div style="text-align: center; color: var(--error); max-width: 400px;">
-                    <svg width="48" height="48" fill="currentColor" viewBox="0 0 24 24" style="margin-bottom: 1rem;">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                    </svg>
-                    <div style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">
-                        데이터 로딩 오류
-                    </div>
-                    <div style="color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.5;">
-                        ${message}
-                    </div>
-                    <button onclick="location.reload()" style="
-                        background: var(--ean-primary);
-                        color: white;
-                        border: none;
-                        padding: var(--space-3) var(--space-6);
-                        border-radius: var(--radius-md);
-                        cursor: pointer;
-                        font-size: var(--font-size-sm);
-                        transition: all var(--transition-fast);
-                    " onmouseover="this.style.background='var(--ean-primary-dark)'" 
-                       onmouseout="this.style.background='var(--ean-primary)'">
-                        다시 시도
-                    </button>
-                    <div style="margin-top: var(--space-4); font-size: var(--font-size-xs); color: var(--text-tertiary);">
-                        문제가 지속되면 데이터 파일을 확인하세요
-                    </div>
-                </div>
-            `;
-            
-            // Show the overlay
-            overlay.dataset.state = 'visible';
-        }
-        
-        // ==========================================
-        // SIMULATION TICK
-        // ==========================================
-        function initializeSimulation() {
-            simulation.on('tick', () => {
-                linkGroup.selectAll('line')
-                    .attr('x1', d => d.source.x)
-                    .attr('y1', d => d.source.y)
-                    .attr('x2', d => d.target.x)
-                    .attr('y2', d => d.target.y);
-                
-                nodeGroup.selectAll('circle')
-                    .attr('cx', d => d.x)
-                    .attr('cy', d => d.y);
-            });
-        }
-        
-        // ==========================================
-        // INITIALIZATION
-        // ==========================================
-        async function initializeApp() {
-            // Check if libraries are loaded
-            if (typeof d3 === 'undefined') {
-                setTimeout(initializeApp, 100);
-                return;
-            }
-            
-            console.log('Libraries loaded successfully');
-            initializeTheme();
-            initializeViewModes();
-            initializeControls();
-            initializeHelpModal();
-            initializeVisualization();
-            initializeSimulation();
-            
-            // Handle window resize
-            window.addEventListener('resize', () => {
-                const container = document.getElementById('graphCanvas');
-                const rect = container.getBoundingClientRect();
-                width = rect.width;
-                height = rect.height;
-                
-                svg.attr('width', width).attr('height', height);
-                simulation.force('center', d3.forceCenter(width / 2, height / 2));
-                simulation.restart();
-            });
-            
-            // Load and initialize data
-            await loadData();
-        }
-        
-        // Start initialization when DOM is ready
-        document.addEventListener('DOMContentLoaded', initializeApp);
-        
-        // Also try when window loads (fallback)
-        window.addEventListener('load', () => {
-            if (typeof d3 === 'undefined') {
-                initializeApp();
-            }
-        });
-    </script>
+/* ---------------- load ---------------- */
+(async function(){
+  try{
+    const res=await fetch("data.json");
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const j=await res.json();
+    RAW=(j.records||[]).map(r=>({
+      field:T(r.분야), service:T(r.용역), name:T(r.프로젝트명),
+      client:T(r.발주처), region:T(r.지역), year:+r.year
+    })).filter(r=>r.field&&r.service&&r.name&&r.year);
+    if(!RAW.length) throw new Error("레코드가 비어 있습니다");
+    boot();
+  }catch(e){
+    document.getElementById("loader").style.display="none";
+    document.getElementById("errbox").style.display="block";
+    document.getElementById("errmsg").textContent=e.message;
+  }
+})();
+
+function boot(){
+  const yrs=RAW.map(r=>r.year); yearMin=Math.min(...yrs); yearMax=Math.max(...yrs); range=[yearMin,yearMax];
+  // field order by count
+  const fc=d3.rollups(RAW,v=>v.length,r=>r.field).sort((a,b)=>b[1]-a[1]);
+  FIELDS=fc.map(d=>d[0]);
+  const cmap=new Map(FIELDS.map((f,i)=>[f,PALETTE[i%PALETTE.length]]));
+  colorOf=(f)=>cmap.get(f)||"#888";
+
+  fuse=new Fuse(RAW,{keys:["name","client","service"],threshold:.38,ignoreLocation:true,minMatchCharLength:2});
+
+  buildStats(); buildLegend(); buildGraph(); drawTimeline();
+  renderPanelDefault();
+  document.getElementById("overlay").classList.add("hide");
+  setTimeout(()=>document.getElementById("overlay").style.display="none",520);
+  wire();
+}
+
+/* ---------------- derived data ---------------- */
+function inRange(r){return r.year>=range[0]&&r.year<=range[1]}
+function activeRecords(){return RAW.filter(inRange)}
+
+function buildStats(){
+  const R=RAW;
+  const data=[
+    {v:R.length,u:"건",l:"누적 프로젝트"},
+    {v:new Set(R.map(r=>r.client)).size,u:"곳",l:"발주처"},
+    {v:FIELDS.length,u:"분야",l:"업무 영역"},
+    {v:new Set(R.map(r=>r.service)).size,u:"종",l:"용역 유형"},
+    {v:(yearMax-yearMin+1),u:"년",l:"업력"}
+  ];
+  const el=document.getElementById("stats");
+  el.innerHTML=data.map(d=>`<div class="stat"><div class="stat__v"><span data-to="${d.v}">0</span><span class="u">${d.u}</span></div><div class="stat__l">${d.l}</div></div>`).join("");
+  el.querySelectorAll("[data-to]").forEach((n,i)=>countUp(n,+n.dataset.to,900+i*90));
+}
+function countUp(node,to,dur){
+  const t0=performance.now();
+  function step(t){const p=Math.min(1,(t-t0)/dur);const e=1-Math.pow(1-p,3);
+    node.textContent=Math.round(to*e).toLocaleString("ko");if(p<1)requestAnimationFrame(step)}
+  requestAnimationFrame(step);
+}
+
+function buildLegend(){
+  const counts=d3.rollup(RAW,v=>v.length,r=>r.field);
+  const el=document.getElementById("legend");
+  FIELDS.forEach(f=>{
+    const d=document.createElement("div");d.className="lg";d.dataset.field=f;
+    d.style.setProperty("--c",colorOf(f));
+    d.innerHTML=`<span class="lg__dot" style="background:${colorOf(f)}"></span><span class="lg__name">${short(f)}</span><span class="lg__n">${counts.get(f)}</span>`;
+    d.onclick=()=>toggleField(f);
+    d.onmouseenter=()=>hoverField(f,true); d.onmouseleave=()=>hoverField(f,false);
+    el.appendChild(d);
+  });
+}
+
+/* ---------------- constellation ---------------- */
+function computeGraph(){
+  const R=activeRecords();
+  const fCount=d3.rollup(R,v=>v.length,r=>r.field);
+  const sCount=d3.rollup(R,v=>v.length,r=>r.service);
+  // service -> dominant field
+  const svcField=new Map();
+  d3.rollups(R,v=>v.length,r=>r.service,r=>r.field).forEach(([s,arr])=>{
+    svcField.set(s,arr.sort((a,b)=>b[1]-a[1])[0][0]);
+  });
+  const fNodes=FIELDS.filter(f=>fCount.get(f)).map((f,i)=>({
+    id:"F:"+f,type:"field",field:f,label:short(f),count:fCount.get(f)||0,color:colorOf(f),
+    angle:(i/FIELDS.length)*Math.PI*2
+  }));
+  const sNodes=[...sCount.keys()].map(s=>{
+    const f=svcField.get(s);
+    return{id:"S:"+s,type:"service",field:f,service:s,label:s,count:sCount.get(s)||0,color:colorOf(f)};
+  });
+  const lk=d3.rollups(R,v=>v.length,r=>r.field,r=>r.service).flatMap(([f,arr])=>
+    arr.map(([s,w])=>({source:"F:"+f,target:"S:"+s,weight:w})));
+  const core={id:"CORE",type:"core",field:null,label:"EAN",count:R.length,color:"#eaf0f6"};
+  const coreLinks=fNodes.map(f=>({source:"CORE",target:f.id,weight:f.count,core:true}));
+  return {nodes:[core,...fNodes,...sNodes],links:[...coreLinks,...lk]};
+}
+
+function buildGraph(){
+  svg=d3.select("#viz");
+  const box=document.querySelector(".stage").getBoundingClientRect();
+  const W=box.width,H=box.height;
+  svg.attr("viewBox",`0 0 ${W} ${H}`);
+  svg.selectAll("*").remove();
+  const defs=svg.append("defs");
+  FIELDS.forEach(f=>{
+    const g=defs.append("radialGradient").attr("id","glow"+FIELDS.indexOf(f));
+    g.append("stop").attr("offset","0%").attr("stop-color",colorOf(f)).attr("stop-opacity",.9);
+    g.append("stop").attr("offset","100%").attr("stop-color",colorOf(f)).attr("stop-opacity",.15);
+  });
+  zoomG=svg.append("g");
+  gLink=zoomG.append("g").attr("class","links");
+  gNode=zoomG.append("g").attr("class","nodes");
+
+  zoomBehavior=d3.zoom().scaleExtent([.4,4]).on("zoom",e=>zoomG.attr("transform",e.transform));
+  svg.call(zoomBehavior).on("dblclick.zoom",null);
+  svg.on("click",()=>{if(focusField){toggleField(focusField)}});
+
+  updateGraph(true);
+}
+
+function updateGraph(initial){
+  const box=document.querySelector(".stage").getBoundingClientRect();
+  const W=box.width,H=box.height,cx=W/2,cy=H/2,ring=Math.min(W,H)*0.30;
+  const g=computeGraph();
+  // preserve positions
+  const prev=new Map(nodes.map(n=>[n.id,n]));
+  nodes=g.nodes.map(n=>{
+    if(n.type==="core")return Object.assign(n,{x:cx,y:cy,fx:cx,fy:cy});
+    const p=prev.get(n.id);return Object.assign(n,p?{x:p.x,y:p.y,vx:0,vy:0,fx:null,fy:null}:{x:cx+Math.cos(n.angle||Math.random()*6)*ring,y:cy+Math.sin(n.angle||Math.random()*6)*ring});
+  });
+  const byId=new Map(nodes.map(n=>[n.id,n]));
+  links=g.links.filter(l=>byId.has(l.source)&&byId.has(l.target));
+
+  const rField=d3.scaleSqrt().domain([1,d3.max(nodes.filter(n=>n.type==="field"),n=>n.count)||1]).range([20,46]);
+  const rSvc=d3.scaleSqrt().domain([1,d3.max(nodes.filter(n=>n.type==="service"),n=>n.count)||1]).range([5,17]);
+  const radius=n=>n.type==="core"?34:n.type==="field"?rField(n.count):rSvc(n.count);
+  nodes.forEach(n=>n.r=radius(n));
+  const lw=d3.scaleSqrt().domain([1,d3.max(links,l=>l.weight)||1]).range([.6,5]);
+
+  const fieldAnchor=new Map();
+  nodes.filter(n=>n.type==="field").forEach((n,i,a)=>{const an=(i/a.length)*Math.PI*2-Math.PI/2;fieldAnchor.set(n.field,{x:cx+Math.cos(an)*ring,y:cy+Math.sin(an)*ring})});
+
+  // links
+  const lsel=gLink.selectAll("path").data(links,d=>(d.source.id||d.source)+"|"+(d.target.id||d.target));
+  lsel.exit().remove();
+  lsel.enter().append("path").attr("class","link")
+    .merge(lsel)
+    .attr("stroke",d=>{const s=byId.get(d.source.id||d.source)||{};return s.type==="core"?colorOf((byId.get(d.target.id||d.target)||{}).field):colorOf(s.field)})
+    .attr("stroke-width",d=>d.core?Math.max(1,lw(d.weight)*.7):lw(d.weight))
+    .attr("stroke-opacity",d=>d.core?.3:.18);
+
+  // nodes
+  const nsel=gNode.selectAll("g.node").data(nodes,d=>d.id);
+  nsel.exit().transition().duration(300).attr("opacity",0).remove();
+  const ent=nsel.enter().append("g").attr("class",d=>"node node--"+d.type+" node-hit")
+    .call(d3.drag().on("start",dragStart).on("drag",dragged).on("end",dragEnd));
+  ent.append("circle");
+  ent.append("text").attr("class","node__count").attr("text-anchor","middle").attr("dy",".34em");
+  ent.append("text").attr("class","node__label").attr("text-anchor","middle");
+  const all=ent.merge(nsel);
+  all.select("circle")
+    .attr("r",d=>d.r)
+    .attr("fill",d=>d.type==="core"?"rgba(234,240,246,.05)":d.type==="field"?colorOf(d.field):d3.color(colorOf(d.field)).copy({opacity:.5}))
+    .attr("stroke",d=>d.type==="core"?"var(--ink)":colorOf(d.field))
+    .attr("stroke-width",d=>d.type==="core"?1.5:d.type==="field"?0:1.2)
+    .attr("stroke-opacity",d=>d.type==="core"?.8:.55)
+    .style("filter",d=>d.type==="field"?`drop-shadow(0 0 12px ${d3.color(colorOf(d.field)).copy({opacity:.55})})`:d.type==="core"?"drop-shadow(0 0 18px rgba(234,240,246,.22))":"none");
+  all.select(".node__count")
+    .attr("font-size",d=>d.type==="core"?15:d.type==="field"?Math.max(11,d.r*.5):0)
+    .attr("opacity",d=>d.type==="field"?.92:d.type==="core"?1:0)
+    .attr("fill",d=>d.type==="core"?"var(--ink)":"var(--bg-0)")
+    .style("letter-spacing",d=>d.type==="core"?".14em":"normal")
+    .text(d=>d.type==="core"?"EAN":d.type==="field"?d.count:"");
+  all.select(".node__label")
+    .attr("font-size",d=>d.type==="field"?13:11)
+    .attr("dy",d=>d.r+15)
+    .attr("class",d=>"node__label "+(d.type==="field"?"":"svc-label"))
+    .attr("fill",d=>d.type==="field"?"var(--ink)":"var(--ink-2)")
+    .style("paint-order","stroke").style("stroke","var(--bg-0)").style("stroke-width",d=>d.type==="field"?"3px":"2.5px")
+    .style("font-weight",d=>d.type==="field"?600:500)
+    .style("font-family","var(--sans)")
+    .style("opacity",d=>d.type==="field"?1:0)
+    .style("pointer-events","none")
+    .text(d=>d.type==="field"?d.label:d.label);
+
+  all.on("mouseenter",(e,d)=>nodeHover(e,d,true)).on("mousemove",moveTip)
+     .on("mouseleave",(e,d)=>nodeHover(e,d,false))
+     .on("click",(e,d)=>{e.stopPropagation();if(d.type==="core"){resetAll();return}d.type==="field"?toggleField(d.field):showService(d.service)});
+
+  if(sim)sim.stop();
+  sim=d3.forceSimulation(nodes)
+    .force("link",d3.forceLink(links).id(d=>d.id).distance(d=>d.core?ring*0.82:d.target.type==="service"?54:120).strength(d=>d.core?.18:.5))
+    .force("charge",d3.forceManyBody().strength(d=>d.type==="field"?-720:d.type==="core"?-1100:-90))
+    .force("collide",d3.forceCollide().radius(d=>d.r+7).strength(.9))
+    .force("x",d3.forceX(d=>{const a=fieldAnchor.get(d.field);return a?a.x:cx}).strength(d=>d.type==="field"?.28:.07))
+    .force("y",d3.forceY(d=>{const a=fieldAnchor.get(d.field);return a?a.y:cy}).strength(d=>d.type==="field"?.28:.07))
+    .on("tick",tick);
+  sim.alpha(initial?1:.7).restart();
+  applyFocusStyles();
+}
+
+function tick(){
+  gLink.selectAll("path").attr("d",d=>{
+    const s=d.source,t=d.target;const dx=t.x-s.x,dy=t.y-s.y,dr=Math.hypot(dx,dy)*1.7;
+    return `M${s.x},${s.y}A${dr},${dr} 0 0,1 ${t.x},${t.y}`;
+  });
+  gNode.selectAll("g.node").attr("transform",d=>`translate(${d.x},${d.y})`);
+}
+function dragStart(e,d){if(!e.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y}
+function dragged(e,d){d.fx=e.x;d.fy=e.y}
+function dragEnd(e,d){if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null}
+
+/* ---------------- interactions ---------------- */
+function nodeHover(e,d,on){
+  const byId=new Map(nodes.map(n=>[n.id,n]));
+  if(on){
+    const connected=new Set([d.id]);
+    links.forEach(l=>{const s=l.source.id||l.source,t=l.target.id||l.target;if(s===d.id)connected.add(t);if(t===d.id)connected.add(s)});
+    gNode.selectAll("g.node").style("opacity",n=>connected.has(n.id)?1:.18);
+    gLink.selectAll("path").attr("stroke-opacity",l=>((l.source.id||l.source)===d.id||(l.target.id||l.target)===d.id)?.7:.04);
+    gNode.selectAll("g.node").filter(n=>n.type==="service"&&connected.has(n.id)).select(".node__label").style("opacity",1);
+    const total=activeRecords().length;
+    const _nm=d.type==="core"?"EAN — 전체 실적":d.type==="field"?short(d.field):d.service;
+    const _meta=d.type==="core"?`${RAW.length.toLocaleString("ko")}건 · ${FIELDS.length}개 분야 · ${new Set(RAW.map(r=>r.client)).size}개 발주처`:`${d.count.toLocaleString("ko")}건 · ${(d.count/total*100).toFixed(1)}%${d.type==="service"?" · "+short(d.field):""}`;
+    tip.innerHTML=`<div class="tip__bar" style="background:${d.type==="core"?"var(--ink)":colorOf(d.field)}"></div><div class="tip__name">${_nm}</div><div class="tip__meta">${_meta}</div>`;
+    tip.classList.add("on");moveTip(e);
+  }else{
+    tip.classList.remove("on");applyFocusStyles();
+  }
+}
+function moveTip(e){const x=e.clientX,y=e.clientY;tip.style.left=Math.min(x+16,innerWidth-270)+"px";tip.style.top=(y+16)+"px"}
+
+function applyFocusStyles(){
+  if(!gNode)return;
+  if(focusField){
+    gNode.selectAll("g.node").style("opacity",n=>n.field===focusField?1:.12);
+    gLink.selectAll("path").attr("stroke-opacity",l=>{const s=l.source,t=l.target;return ((s.field===focusField)||(t&&t.field===focusField))?.5:.03});
+    gNode.selectAll("g.node").filter(n=>n.field===focusField&&n.type==="service").select(".node__label").style("opacity",1);
+  }else if(searchHits){
+    const set=searchHits;
+    gNode.selectAll("g.node").style("opacity",n=>set.has(n.field)||set.has("S:"+n.service)?1:.14);
+    gLink.selectAll("path").attr("stroke-opacity",.1);
+  }else{
+    gNode.selectAll("g.node").style("opacity",1);
+    gLink.selectAll("path").attr("stroke-opacity",.18);
+    gNode.selectAll(".svc-label").style("opacity",0);
+  }
+}
+function hoverField(f,on){
+  if(focusField)return;
+  if(on){gNode&&gNode.selectAll("g.node").style("opacity",n=>n.field===f?1:.2);
+    gLink&&gLink.selectAll("path").attr("stroke-opacity",l=>l.source.field===f?.5:.04);}
+  else applyFocusStyles();
+}
+function toggleField(f){
+  focusField=(focusField===f)?null:f;
+  searchHits=null;document.getElementById("search").value="";document.getElementById("searchCount").style.opacity=0;
+  document.querySelectorAll(".lg").forEach(l=>{l.classList.toggle("on",l.dataset.field===focusField);l.classList.toggle("dim",focusField&&l.dataset.field!==focusField)});
+  applyFocusStyles();
+  focusField?renderFieldPanel(f):renderPanelDefault();
+}
+
+/* ---------------- panel ---------------- */
+function el(html){const d=document.createElement("div");d.innerHTML=html.trim();return d.firstChild}
+function renderPanelDefault(){
+  const P=document.getElementById("panel");P.innerHTML="";
+  const R=activeRecords();
+  // top clients
+  const clients=d3.rollups(R,v=>v.length,r=>r.client).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const maxC=clients.length?clients[0][1]:1;
+  const cs=el(`<section><div class="sect__h"><span class="sect__t">반복 거래 발주처</span><span class="sect__a">Top 12</span></div></section>`);
+  clients.forEach(([n,c],i)=>cs.appendChild(el(
+    `<div class="row"><span class="row__rank">${i+1}</span><span class="row__name" title="${n}">${n}</span><span class="row__bar" style="--w:${Math.round(c/maxC*64)}px"></span><span class="row__n">${c}</span></div>`)));
+  P.appendChild(cs);
+  // region
+  const regions=d3.rollups(R,v=>v.length,r=>r.region).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxR=regions.length?regions[0][1]:1;
+  const rs=el(`<section><div class="sect__h"><span class="sect__t">지역 분포</span><span class="sect__a">${new Set(R.map(r=>r.region)).size}개 권역</span></div></section>`);
+  regions.forEach(([n,c])=>rs.appendChild(el(
+    `<div class="row"><span class="row__name">${n}</span><span class="row__bar" style="--w:${Math.round(c/maxR*120)}px"></span><span class="row__n">${c}</span></div>`)));
+  P.appendChild(rs);
+  // recent projects
+  const recent=[...R].sort((a,b)=>b.year-a.year).slice(0,8);
+  appendProjects(P,recent,"최근 프로젝트",R.length+"건 중");
+}
+function renderFieldPanel(f){
+  const P=document.getElementById("panel");P.innerHTML="";
+  const R=activeRecords().filter(r=>r.field===f);
+  const card=el(`<div class="fcard"><div class="fcard__bar" style="background:${colorOf(f)}"></div><div class="fcard__top"><h3 class="fcard__name">${short(f)}</h3><div class="fcard__meta">${R.length}건 · ${new Set(R.map(r=>r.client)).size}개 발주처 · ${d3.min(R,r=>r.year)}–${d3.max(R,r=>r.year)}</div></div><div class="chips"></div></div>`);
+  const chips=card.querySelector(".chips");
+  d3.rollups(R,v=>v.length,r=>r.service).sort((a,b)=>b[1]-a[1]).forEach(([s,c])=>{
+    const ch=el(`<button class="chip">${s} <b>${c}</b></button>`);ch.onclick=()=>showService(s);chips.appendChild(ch)});
+  P.appendChild(el(`<div style="margin-bottom:-8px"></div>`));P.appendChild(card);
+  appendProjects(P,[...R].sort((a,b)=>b.year-a.year),"프로젝트",R.length+"건");
+}
+function showService(s){
+  const P=document.getElementById("panel");P.innerHTML="";
+  const R=activeRecords().filter(r=>r.service===s);const f=R[0]?R[0].field:FIELDS[0];
+  const back=el(`<button class="chip" style="align-self:flex-start">← 전체 / ${short(f)}</button>`);
+  back.onclick=()=>focusField?renderFieldPanel(focusField):renderPanelDefault();
+  P.appendChild(back);
+  P.appendChild(el(`<div class="fcard"><div class="fcard__bar" style="background:${colorOf(f)}"></div><div class="fcard__top"><h3 class="fcard__name">${s}</h3><div class="fcard__meta">${R.length}건 · ${short(f)}</div></div></div>`));
+  appendProjects(P,[...R].sort((a,b)=>b.year-a.year),"프로젝트",R.length+"건");
+}
+function appendProjects(P,arr,title,note){
+  const sec=el(`<section><div class="sect__h"><span class="sect__t">${title}</span><span class="sect__a">${note}</span></div><div class="plist"></div></section>`);
+  const list=sec.querySelector(".plist");
+  if(!arr.length){list.appendChild(el(`<div class="empty">해당 조건의 프로젝트가 없습니다</div>`))}
+  arr.slice(0,40).forEach(r=>list.appendChild(el(
+    `<div class="pitem"><div class="pitem__top"><span class="pitem__name">${r.name}</span><span class="pitem__yr">${r.year}</span></div><div class="pitem__sub"><span class="pitem__tag" style="background:${colorOf(r.field)}"></span>${r.client||"—"} · ${r.region||"—"}</div></div>`)));
+  P.appendChild(sec);
+}
+
+/* ---------------- timeline ---------------- */
+function drawTimeline(){
+  const svgT=d3.select("#timeSvg");svgT.selectAll("*").remove();
+  const W=document.querySelector(".timeline").getBoundingClientRect().width-60,H=84,mb=18;
+  svgT.attr("viewBox",`0 0 ${W} ${H}`);
+  const years=d3.range(yearMin,yearMax+1);
+  const counts=d3.rollup(RAW,v=>v.length,r=>r.year);
+  const data=years.map(y=>({year:y,n:counts.get(y)||0}));
+  const x=d3.scaleBand().domain(years).range([0,W]).padding(.32);
+  const y=d3.scaleLinear().domain([0,d3.max(data,d=>d.n)||1]).range([H-mb,8]);
+  const g=svgT.append("g");
+  g.selectAll(".tl-bar").data(data).enter().append("rect").attr("class","tl-bar")
+    .attr("x",d=>x(d.year)).attr("width",x.bandwidth()).attr("y",d=>y(d.n)).attr("height",d=>H-mb-y(d.n))
+    .attr("rx",2).attr("fill","var(--accent)")
+    .attr("opacity",d=>d.year>=range[0]&&d.year<=range[1]?.85:.2);
+  g.selectAll(".tl-year").data(data).enter().append("text").attr("class","tl-year")
+    .attr("x",d=>x(d.year)+x.bandwidth()/2).attr("y",H-5).attr("text-anchor","middle")
+    .text(d=>(d.year%5===0||d.year===yearMin||d.year===yearMax)?("’"+String(d.year).slice(2)):"");
+  // brush
+  const brush=d3.brushX().extent([[0,0],[W,H-mb]]).on("end",brushed);
+  const bg=svgT.append("g").attr("class","brush").call(brush);
+  function brushed(ev){
+    if(!ev.selection){range=[yearMin,yearMax]}
+    else{const[a,b]=ev.selection;
+      const sel=years.filter(yr=>x(yr)+x.bandwidth()>a&&x(yr)<b);
+      if(sel.length)range=[d3.min(sel),d3.max(sel)];else range=[yearMin,yearMax];
+    }
+    document.getElementById("timeSel").textContent=(range[0]===yearMin&&range[1]===yearMax)?"전체 기간":`${range[0]} – ${range[1]}`;
+    g.selectAll(".tl-bar").attr("opacity",d=>d.year>=range[0]&&d.year<=range[1]?.85:.2);
+    refresh();
+  }
+}
+function refresh(){
+  updateGraph(false);buildLegendCounts();
+  focusField?renderFieldPanel(focusField):renderPanelDefault();
+}
+function buildLegendCounts(){
+  const counts=d3.rollup(activeRecords(),v=>v.length,r=>r.field);
+  document.querySelectorAll(".lg").forEach(l=>{const n=l.querySelector(".lg__n");if(n)n.textContent=counts.get(l.dataset.field)||0});
+}
+
+/* ---------------- search / wire ---------------- */
+function wire(){
+  const s=document.getElementById("search"),sc=document.getElementById("searchCount");
+  let to;
+  s.addEventListener("input",()=>{clearTimeout(to);to=setTimeout(()=>runSearch(s.value),160)});
+  document.getElementById("resetBtn").onclick=resetAll;
+  document.getElementById("themeBtn").onclick=()=>{
+    const r=document.documentElement;r.dataset.theme=r.dataset.theme==="dark"?"light":"dark";
+  };
+  window.addEventListener("resize",debounce(()=>{buildGraph();drawTimeline()},250));
+}
+function runSearch(q){
+  const sc=document.getElementById("searchCount");
+  q=q.trim();
+  if(q.length<2){searchHits=null;sc.style.opacity=0;applyFocusStyles();focusField?null:renderPanelDefault();return}
+  focusField=null;document.querySelectorAll(".lg").forEach(l=>l.classList.remove("on","dim"));
+  const res=fuse.search(q).map(r=>r.item).filter(inRange);
+  sc.textContent=res.length+"건";sc.style.opacity=1;
+  searchHits=new Set();res.forEach(r=>{searchHits.add(r.field);searchHits.add("S:"+r.service)});
+  applyFocusStyles();
+  const P=document.getElementById("panel");P.innerHTML="";
+  appendProjects(P,res,`"${q}" 검색`,res.length+"건");
+}
+function resetAll(){
+  focusField=null;searchHits=null;range=[yearMin,yearMax];
+  document.getElementById("search").value="";document.getElementById("searchCount").style.opacity=0;
+  document.getElementById("timeSel").textContent="전체 기간";
+  document.querySelectorAll(".lg").forEach(l=>l.classList.remove("on","dim"));
+  drawTimeline();updateGraph(false);buildLegendCounts();renderPanelDefault();
+  svg.transition().duration(500).call(zoomBehavior.transform,d3.zoomIdentity);
+}
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+</script>
 </body>
 </html>
