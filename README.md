@@ -4,7 +4,7 @@ Interactive network visualization of EAN Technology contract data using D3.js fo
 
 ## Live Demo
 
-🌐 **https://ashowl-git.github.io/ean-network-data/**
+**https://ashowl-git.github.io/ean-network-data/**
 
 ## Features
 
